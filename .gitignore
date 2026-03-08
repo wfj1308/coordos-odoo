@@ -1,0 +1,11 @@
+__pycache__/
+*/__pycache__/
+*.py[cod]
+
+pgdata/
+
+data/filestore/
+data/sessions/
+
+.DS_Store
+Thumbs.db
