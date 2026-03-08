@@ -39,6 +39,7 @@ class BridgeTableUploadWizard(models.TransientModel):
     )
     pile_id = fields.Many2one("bridge.pile", string="Pile")
     auto_submit_core = fields.Boolean("Auto Submit Core (Table 7 only)", default=False)
+    strict_auto = fields.Boolean("Strict Auto Pipeline", default=True, readonly=True)
 
     status = fields.Selection(
         [("draft", "Draft"), ("parsed", "Parsed"), ("generated", "Generated")],
@@ -154,6 +155,287 @@ class BridgeTableUploadWizard(models.TransientModel):
             "res_id": self.id,
             "target": "new",
         }
+
+    def _decode_source_payload(self):
+        self.ensure_one()
+        source_data = self.file or self.photo
+        source_name = self.file_name or self.photo_name or "upload_image.jpg"
+        if not source_data:
+            raise UserError("\u8bf7\u5148\u4e0a\u4f20\u6587\u4ef6\u3002")
+
+        suffix = os.path.splitext((source_name or "").lower())[1]
+        if suffix == ".doc":
+            raise UserError("\u6682\u4e0d\u652f\u6301 .doc \u81ea\u52a8\u89e3\u6790\uff0c\u8bf7\u8f6c\u4e3a .docx \u6216 PDF/\u56fe\u7247\u3002")
+
+        return base64.b64decode(source_data), source_name
+
+    def _resolve_table_type(self, parsed, text, source_name):
+        self.ensure_one()
+        if self.table_type != "auto":
+            resolved = self.table_type
+        else:
+            resolved = (parsed or {}).get("table_type") or "other"
+            if resolved == "other":
+                resolved = self._guess_table_type(f"{text}\n{source_name or ''}")
+        if resolved not in {"7", "13", "other"}:
+            return "other"
+        return resolved
+
+    @staticmethod
+    def _is_missing_value(value):
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return not value.strip()
+        if isinstance(value, (list, tuple, set, dict)):
+            return not bool(value)
+        return False
+
+    @staticmethod
+    def _merge_refs(base_refs, extra_refs):
+        merged = []
+        seen = set()
+        for ref in list(base_refs or []) + list(extra_refs or []):
+            value = str(ref or "").strip()
+            if not value or value in seen:
+                continue
+            merged.append(value)
+            seen.add(value)
+        return merged
+
+    def _clear_auto_extracted_fields(self):
+        self.ensure_one()
+        reset_fields = [
+            "resolved_table_type",
+            "ocr_result",
+            "parsed_data_json",
+            "matched_template_id",
+            "matched_template_code",
+            "matched_template_name",
+            "usi_path",
+            "usi_full_path",
+            "engineering_name",
+            "construction_unit",
+            "supervision_unit",
+            "contract_no",
+            "bridge_name",
+            "pier_name",
+            "pile_position",
+            "pile_ref",
+            "check_date",
+            "design_depth",
+            "actual_drilled_depth",
+            "design_diameter",
+            "actual_diameter",
+            "inclination_permille",
+            "hole_detector_passed",
+            "design_top_elevation",
+            "actual_top_elevation",
+            "design_x",
+            "actual_x",
+            "design_y",
+            "actual_y",
+            "design_strength",
+            "actual_strength",
+            "integrity_class",
+            "evidence_refs",
+            "inspector_signature_ref",
+            "recorder_signature_ref",
+            "reviewer_signature_ref",
+            "construction_signature_ref",
+            "supervisor_signature_ref",
+            "inspector_signature_draw",
+            "recorder_signature_draw",
+            "reviewer_signature_draw",
+            "construction_signature_draw",
+            "supervisor_signature_draw",
+            "generated_trip_shadow_id",
+            "generated_model",
+            "generated_res_id",
+            "generated_message",
+        ]
+        for field_name in reset_fields:
+            field = self._fields.get(field_name)
+            if not field:
+                continue
+            if field.type in {"many2one", "float", "integer", "date", "datetime", "boolean", "binary"}:
+                setattr(self, field_name, False)
+            else:
+                setattr(self, field_name, "")
+        self.status = "draft"
+
+    def _apply_parsed_result(self, resolved, text, data):
+        self.ensure_one()
+        parsed = self._sanitize_obj(data or {})
+        self._clear_auto_extracted_fields()
+
+        self.resolved_table_type = resolved
+        self.ocr_result = self._clean_text(text)[:50000]
+        self.parsed_data_json = self._clean_text(json.dumps(parsed, ensure_ascii=False, indent=2))
+        self.matched_template_id = parsed.get("template_id") or False
+        self.matched_template_code = parsed.get("template_code") or ""
+        self.matched_template_name = parsed.get("template_name") or ""
+
+        if parsed.get("pile_ref"):
+            self.pile_ref = parsed["pile_ref"]
+        self._try_resolve_pile_from_ref()
+        if parsed.get("check_date"):
+            self.check_date = parsed["check_date"]
+
+        for key in [
+            "design_depth",
+            "actual_drilled_depth",
+            "design_diameter",
+            "actual_diameter",
+            "inclination_permille",
+            "hole_detector_passed",
+            "design_top_elevation",
+            "actual_top_elevation",
+            "design_x",
+            "actual_x",
+            "design_y",
+            "actual_y",
+            "design_strength",
+            "actual_strength",
+            "integrity_class",
+            "inspector_signature_ref",
+            "recorder_signature_ref",
+            "reviewer_signature_ref",
+            "construction_signature_ref",
+            "supervisor_signature_ref",
+        ]:
+            if key in parsed and parsed.get(key) not in (None, ""):
+                setattr(self, key, parsed.get(key))
+
+        if parsed.get("evidence"):
+            self.evidence_refs = ",".join([self._clean_text(v) for v in parsed["evidence"] if self._clean_text(v)])
+
+        if self.pile_id:
+            if not self.pile_ref:
+                try:
+                    self.pile_ref = self.pile_id._resolve_pile_ref()
+                except Exception:
+                    self.pile_ref = self.pile_id.project_node_id or ""
+            if resolved == "7":
+                if not self.design_depth:
+                    self.design_depth = self.pile_id.design_depth
+                if not self.design_diameter:
+                    self.design_diameter = self.pile_id.design_diameter
+                if not self.actual_drilled_depth:
+                    self.actual_drilled_depth = self.design_depth
+                if not self.actual_diameter:
+                    self.actual_diameter = self.design_diameter
+
+        self._fill_header_from_usi()
+        self.status = "parsed"
+        return parsed
+
+    def _run_auto_parse(self):
+        self.ensure_one()
+        file_data, source_name = self._decode_source_payload()
+        text, data = self._ocr_and_extract_table(file_data, source_name or "")
+        resolved = self._resolve_table_type(data, text, source_name)
+        parsed = self._apply_parsed_result(resolved, text, data)
+        return resolved, parsed
+
+    def _parsed_payload(self):
+        self.ensure_one()
+        raw = (self.parsed_data_json or "").strip()
+        if not raw:
+            return {}
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            payload = {}
+        return payload if isinstance(payload, dict) else {}
+
+    def _strict_validate_auto_pipeline(self, resolved_type):
+        self.ensure_one()
+        missing = []
+
+        if self._is_missing_value(self.ocr_result):
+            missing.append("OCR\u6587\u672c")
+        if self._is_missing_value(self.pile_ref):
+            missing.append("\u6869\u4f4d\u5f15\u7528(pile_ref)")
+        if self._is_missing_value(self.usi_path):
+            missing.append("USI\u8def\u5f84")
+
+        if resolved_type in {"7", "13"} and not self.pile_id:
+            missing.append("\u5173\u8054\u6869\u57fa")
+
+        if resolved_type == "7":
+            for label, value in [
+                ("\u68c0\u67e5\u65e5\u671f", self.check_date),
+                ("\u5e94\u94bb\u6df1\u5ea6", self.design_depth),
+                ("\u5b9e\u94bb\u6df1\u5ea6", self.actual_drilled_depth),
+                ("\u8bbe\u8ba1\u6869\u5f84", self.design_diameter),
+                ("\u6210\u5b54\u76f4\u5f84", self.actual_diameter),
+                ("\u503e\u659c\u5ea6", self.inclination_permille),
+            ]:
+                if self._is_missing_value(value):
+                    missing.append(label)
+        elif resolved_type == "13":
+            for label, value in [
+                ("\u68c0\u67e5\u65e5\u671f", self.check_date),
+                ("\u8bbe\u8ba1\u6869\u9876\u9ad8\u7a0b", self.design_top_elevation),
+                ("\u5b9e\u6d4b\u6869\u9876\u9ad8\u7a0b", self.actual_top_elevation),
+                ("\u8bbe\u8ba1X", self.design_x),
+                ("\u5b9e\u6d4bX", self.actual_x),
+                ("\u8bbe\u8ba1Y", self.design_y),
+                ("\u5b9e\u6d4bY", self.actual_y),
+                ("\u8bbe\u8ba1\u5f3a\u5ea6", self.design_strength),
+                ("\u5b9e\u6d4b\u5f3a\u5ea6", self.actual_strength),
+                ("\u5b8c\u6574\u6027\u7b49\u7ea7", self.integrity_class),
+            ]:
+                if self._is_missing_value(value):
+                    missing.append(label)
+        else:
+            if not self.matched_template_id:
+                missing.append("\u547d\u4e2d\u6a21\u677f(\u8d28\u68c0\u8868\u6a21\u677f\u4e2d\u5fc3)")
+            parsed = self._parsed_payload()
+            generic_fields = parsed.get("generic_fields")
+            if not isinstance(generic_fields, dict) or not generic_fields:
+                missing.append("\u901a\u7528\u5b57\u6bb5\u8bc6\u522b\u7ed3\u679c(generic_fields)")
+
+        if missing:
+            raise UserError(
+                "\u4e25\u683c\u81ea\u52a8\u6d41\u7a0b\u6821\u9a8c\u5931\u8d25\uff0c\u7f3a\u5c11\u5173\u952e\u4fe1\u606f\uff1a\n- "
+                + "\n- ".join(missing)
+                + "\n\n\u8bf7\u5148\u5728\u300c\u8d28\u68c0\u8868\u6a21\u677f\u4e2d\u5fc3\u300d\u5b8c\u5584\u8bc6\u522b\u6a21\u677f\u540e\u91cd\u8bd5\u3002"
+            )
+
+    def _create_output_pdf_attachment(self, record, resolved_type):
+        self.ensure_one()
+        if not record:
+            return None
+        report_xmlid = {
+            "7": "coordos_odoo.action_report_bridge_table7",
+            "13": "coordos_odoo.action_report_bridge_table13",
+            "other": "coordos_odoo.action_report_quality_table_generic",
+        }.get(resolved_type or "other")
+        if not report_xmlid:
+            return None
+
+        report = self.env.ref(report_xmlid, raise_if_not_found=False)
+        if not report:
+            return None
+        try:
+            pdf_bytes, _ = report._render_qweb_pdf(record.ids)
+        except Exception:
+            return None
+        if not pdf_bytes:
+            return None
+
+        file_name = f"{record._name.replace('.', '_')}_{record.id}.pdf"
+        return self.env["ir.attachment"].create(
+            {
+                "name": file_name,
+                "datas": base64.b64encode(pdf_bytes),
+                "mimetype": "application/pdf",
+                "res_model": record._name,
+                "res_id": record.id,
+            }
+        )
 
     @staticmethod
     def _split_refs(raw):
@@ -545,65 +827,13 @@ class BridgeTableUploadWizard(models.TransientModel):
 
     def action_parse_only(self):
         self.ensure_one()
-        source_data = self.file or self.photo
-        source_name = self.file_name or self.photo_name or "upload_image.jpg"
-        if not source_data:
-            raise UserError("\u8bf7\u5148\u4e0a\u4f20\u6587\u4ef6\u3002")
-
-        suffix = os.path.splitext((source_name or "").lower())[1]
-        if suffix == ".doc":
-            raise UserError("\u6682\u4e0d\u652f\u6301 .doc \u81ea\u52a8\u89e3\u6790\uff0c\u8bf7\u8f6c\u4e3a .docx \u6216 PDF/\u56fe\u7247\u3002")
-
-        file_data = base64.b64decode(source_data)
-        text, data = self._ocr_and_extract_table(file_data, source_name or "")
-
-        if self.table_type != "auto":
-            resolved = self.table_type
-        else:
-            resolved = data.get("table_type") or "other"
-            if resolved == "other":
-                resolved = self._guess_table_type(f"{text}\n{source_name or ''}")
-
-        self.resolved_table_type = resolved
-        self.ocr_result = self._clean_text(text)[:50000]
-        self.parsed_data_json = self._clean_text(json.dumps(self._sanitize_obj(data), ensure_ascii=False, indent=2))
-        self.matched_template_id = data.get("template_id") or False
-        self.matched_template_code = data.get("template_code") or ""
-        self.matched_template_name = data.get("template_name") or ""
-
-        if data.get("pile_ref"):
-            self.pile_ref = data["pile_ref"]
-        self._try_resolve_pile_from_ref()
-        if data.get("check_date"):
-            self.check_date = data["check_date"]
-
-        for key in [
-            "design_depth", "actual_drilled_depth", "design_diameter", "actual_diameter", "inclination_permille",
-            "hole_detector_passed", "design_top_elevation", "actual_top_elevation", "design_x", "actual_x",
-            "design_y", "actual_y", "design_strength", "actual_strength", "integrity_class",
-            "inspector_signature_ref", "recorder_signature_ref", "reviewer_signature_ref",
-            "construction_signature_ref", "supervisor_signature_ref",
-        ]:
-            if key in data and data.get(key) not in (None, ""):
-                setattr(self, key, data.get(key))
-
-        if data.get("evidence"):
-            self.evidence_refs = ",".join([self._clean_text(v) for v in data["evidence"] if self._clean_text(v)])
-
-        if self.pile_id:
-            if not self.design_depth:
-                self.design_depth = self.pile_id.design_depth
-            if not self.design_diameter:
-                self.design_diameter = self.pile_id.design_diameter
-
-        self._fill_header_from_usi()
-        self.status = "parsed"
+        self._run_auto_parse()
         return self._reopen_self()
 
     def _ensure_parsed(self):
         self.ensure_one()
-        if self.status == "draft":
-            self.action_parse_only()
+        if self.status != "parsed":
+            self._run_auto_parse()
 
     def _build_trip_shadow(self, resolved_type, evidence_list):
         self.ensure_one()
@@ -789,8 +1019,24 @@ class BridgeTableUploadWizard(models.TransientModel):
                 return [str(item).strip() for item in parsed if str(item).strip()]
         return BridgeTableUploadWizard._split_refs(text)
 
+    def _append_refs_to_generated_record(self, generated_record, resolved_type, refs_to_add):
+        self.ensure_one()
+        refs_to_add = [self._clean_text(v) for v in (refs_to_add or []) if self._clean_text(v)]
+        if not generated_record:
+            return
+        if resolved_type == "7":
+            base_refs = generated_record._evidence_refs_as_list()
+        elif resolved_type == "13":
+            base_refs = self._parse_evidence_json(generated_record.evidence_refs)
+        else:
+            base_refs = generated_record._split_refs(generated_record.evidence_refs)
+        merged = self._merge_refs(base_refs, refs_to_add)
+        generated_record.evidence_refs = json.dumps(merged, ensure_ascii=False)
+
     def _materialize_drawn_signatures(self, target_model, target_id):
         self.ensure_one()
+        if self.strict_auto:
+            return {}
         refs = {}
         draw_fields = [
             ("inspector_signature_draw", "inspector_signature_ref", "inspector_sign.png"),
@@ -813,9 +1059,9 @@ class BridgeTableUploadWizard(models.TransientModel):
 
     def action_upload_and_process(self):
         self.ensure_one()
-        self._ensure_parsed()
+        resolved_type, _parsed_payload = self._run_auto_parse()
+        self._strict_validate_auto_pipeline(resolved_type)
 
-        resolved_type = self.resolved_table_type or ("other" if self.table_type == "auto" else self.table_type)
         if not self.pile_id:
             self._try_resolve_pile_from_ref()
         if resolved_type in {"7", "13"} and not self.pile_id:
@@ -846,13 +1092,11 @@ class BridgeTableUploadWizard(models.TransientModel):
             extra_refs.append(f"attachment://{attachment.id}")
             if generated_record and hasattr(generated_record, "source_attachment_id"):
                 generated_record.source_attachment_id = attachment.id
+
         draw_refs = self._materialize_drawn_signatures(target_model, target_id)
         extra_refs.extend(draw_refs.values())
 
-        if generated_record and resolved_type == "7":
-            refs = generated_record._evidence_refs_as_list()
-            refs.extend(extra_refs)
-            generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
+        if generated_record:
             signature_vals = {}
             for field_name in [
                 "inspector_signature_ref",
@@ -866,40 +1110,13 @@ class BridgeTableUploadWizard(models.TransientModel):
                     signature_vals[field_name] = value
             if signature_vals:
                 generated_record.write(signature_vals)
-        elif generated_record and resolved_type == "13":
-            refs = self._parse_evidence_json(generated_record.evidence_refs)
-            refs.extend(extra_refs)
-            generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
-            signature_vals = {}
-            for field_name in [
-                "inspector_signature_ref",
-                "recorder_signature_ref",
-                "reviewer_signature_ref",
-                "construction_signature_ref",
-                "supervisor_signature_ref",
-            ]:
-                value = (draw_refs.get(field_name) or getattr(self, field_name) or "").strip()
-                if value:
-                    signature_vals[field_name] = value
-            if signature_vals:
-                generated_record.write(signature_vals)
-        elif generated_record:
-            refs = generated_record._split_refs(generated_record.evidence_refs)
-            refs.extend(extra_refs)
-            generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
-            signature_vals = {}
-            for field_name in [
-                "inspector_signature_ref",
-                "recorder_signature_ref",
-                "reviewer_signature_ref",
-                "construction_signature_ref",
-                "supervisor_signature_ref",
-            ]:
-                value = (draw_refs.get(field_name) or getattr(self, field_name) or "").strip()
-                if value:
-                    signature_vals[field_name] = value
-            if signature_vals:
-                generated_record.write(signature_vals)
+
+        pdf_attachment = self._create_output_pdf_attachment(generated_record, resolved_type) if generated_record else None
+        if pdf_attachment:
+            extra_refs.append(f"attachment://{pdf_attachment.id}")
+
+        if generated_record:
+            self._append_refs_to_generated_record(generated_record, resolved_type, extra_refs)
 
         if generated_record and resolved_type == "7" and self.auto_submit_core:
             generated_record.action_submit_to_core()
@@ -907,7 +1124,10 @@ class BridgeTableUploadWizard(models.TransientModel):
         self.generated_trip_shadow_id = trip.id
         self.generated_model = target_model
         self.generated_res_id = target_id
-        self.generated_message = "OK: uploaded, parsed, addressed, generated. If execute-step asks trip_id, click Start Trip first."
+        pdf_message = f", pdf=attachment://{pdf_attachment.id}" if pdf_attachment else ", pdf=none"
+        self.generated_message = (
+            f"OK: strict-auto pipeline completed (ocr->usi->record->pdf->trace), type={resolved_type}{pdf_message}."
+        )
         self.status = "generated"
 
         return {
