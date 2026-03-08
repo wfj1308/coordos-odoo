@@ -33,10 +33,14 @@
             <field name="evidence_refs" string="&#x4F50;&#x8BC1;&#x6750;&#x6599;"/>
             <field name="photo" widget="image" filename="photo_name" options="{'preview_image': 'photo', 'size': [0, 220]}" string="&#x73B0;&#x573A;&#x7167;&#x7247;"/>
             <field name="inspector_signature_ref" string="&#x68C0;&#x67E5;&#x7B7E;&#x540D;"/>
+            <field name="recorder_signature_ref" string="&#x8BB0;&#x5F55;&#x7B7E;&#x540D;"/>
             <field name="reviewer_signature_ref" string="&#x590D;&#x6838;&#x7B7E;&#x540D;"/>
+            <field name="construction_signature_ref" string="&#x65BD;&#x5DE5;&#x5355;&#x4F4D;&#x7B7E;&#x540D;"/>
             <field name="supervisor_signature_ref" string="&#x76D1;&#x7406;&#x7B7E;&#x540D;"/>
             <field name="inspector_signature_draw" widget="signature" string="&#x68C0;&#x67E5;&#x624B;&#x5199;&#x7B7E;&#x540D;"/>
+            <field name="recorder_signature_draw" widget="signature" string="&#x8BB0;&#x5F55;&#x624B;&#x5199;&#x7B7E;&#x540D;"/>
             <field name="reviewer_signature_draw" widget="signature" string="&#x590D;&#x6838;&#x624B;&#x5199;&#x7B7E;&#x540D;"/>
+            <field name="construction_signature_draw" widget="signature" string="&#x65BD;&#x5DE5;&#x5355;&#x4F4D;&#x624B;&#x5199;&#x7B7E;&#x540D;"/>
             <field name="supervisor_signature_draw" widget="signature" string="&#x76D1;&#x7406;&#x624B;&#x5199;&#x7B7E;&#x540D;"/>
           </group>
 

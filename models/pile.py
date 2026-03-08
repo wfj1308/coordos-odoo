@@ -1,4 +1,5 @@
-﻿import json
+import hashlib
+import json
 
 from urllib.parse import unquote, urlparse
 
@@ -10,6 +11,14 @@ from .bridge_client import (
     submit_bridge_table7,
     submit_bridge_table13,
 )
+
+SIGNATURE_ROLE_LABELS = {
+    "inspector": "检查",
+    "recorder": "记录",
+    "reviewer": "复核",
+    "construction": "施工单位",
+    "supervisor": "监理工程师",
+}
 
 
 class BridgePile(models.Model):
@@ -421,7 +430,11 @@ class BridgePileHoleInspection(models.Model):
 
     evidence_refs = fields.Text("佐证材料")
     inspector_signature_ref = fields.Char("检查签名")
+    recorder_signature_ref = fields.Char("记录签名")
     reviewer_signature_ref = fields.Char("复核签名")
+    construction_signature_ref = fields.Char("施工单位签名")
+    supervisor_signature_ref = fields.Char("监理签名")
+    signature_audit_json = fields.Text("签名审计(JSON)", readonly=True, copy=False)
 
     core_trip_id = fields.Char("行程ID", readonly=True, copy=False)
     core_verdict = fields.Char("判定结果", readonly=True, copy=False)
@@ -457,7 +470,20 @@ class BridgePileHoleInspection(models.Model):
                 rec.name = f"T7-{fields.Date.today().strftime('%Y%m%d')}-{rec.id:04d}"
             rec.pile_id.latest_inspection_id = rec.id
             rec._ensure_usi_autofill()
+            rec._refresh_signature_audit()
         return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if {
+            "inspector_signature_ref",
+            "recorder_signature_ref",
+            "reviewer_signature_ref",
+            "construction_signature_ref",
+            "supervisor_signature_ref",
+        }.intersection(vals):
+            self._refresh_signature_audit()
+        return res
 
     def _ensure_usi_autofill(self):
         for rec in self:
@@ -501,6 +527,62 @@ class BridgePileHoleInspection(models.Model):
                 return [str(item).strip() for item in parsed if str(item).strip()]
         return self.pile_id._split_refs(raw)
 
+    def _signature_refs_dict(self):
+        self.ensure_one()
+        return {
+            "inspector": (self.inspector_signature_ref or "").strip(),
+            "recorder": (self.recorder_signature_ref or "").strip(),
+            "reviewer": (self.reviewer_signature_ref or "").strip(),
+            "construction": (self.construction_signature_ref or "").strip(),
+            "supervisor": (self.supervisor_signature_ref or "").strip(),
+        }
+
+    def _build_signature_audit_json(self, signatures=None):
+        self.ensure_one()
+        source = signatures or self._signature_refs_dict()
+        now = fields.Datetime.now()
+        now_text = fields.Datetime.to_string(now)
+        entries = []
+        for role, label in SIGNATURE_ROLE_LABELS.items():
+            value = str(source.get(role) or "").strip()
+            if not value:
+                continue
+            entries.append(
+                {
+                    "role": role,
+                    "label": label,
+                    "signer": value,
+                    "ref": value,
+                    "timestamp": now_text,
+                    "hash": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                }
+            )
+        return json.dumps(entries, ensure_ascii=False)
+
+    def _refresh_signature_audit(self):
+        for rec in self:
+            rec.signature_audit_json = rec._build_signature_audit_json()
+        return True
+
+    def _signature_data_uri(self, signature_ref):
+        self.ensure_one()
+        ref = str(signature_ref or "").strip()
+        if not ref:
+            return ""
+        if ref.startswith("data:image/"):
+            return ref
+        if not ref.startswith("attachment://"):
+            return ""
+        token = ref.split("://", 1)[1].split("?", 1)[0].strip()
+        if not token.isdigit():
+            return ""
+        attachment = self.env["ir.attachment"].sudo().browse(int(token))
+        if not attachment.exists() or not attachment.datas:
+            return ""
+        datas = attachment.datas.decode("utf-8") if isinstance(attachment.datas, bytes) else attachment.datas
+        mimetype = attachment.mimetype or "image/png"
+        return f"data:{mimetype};base64,{datas}"
+
     def action_submit_to_core(self):
         nc_model = self.env["bridge.pile.nonconformance"]
         for rec in self:
@@ -508,6 +590,11 @@ class BridgePileHoleInspection(models.Model):
                 raise UserError("请先选择桩基。")
             rec._ensure_usi_autofill()
             pile_ref = rec.pile_ref or rec.pile_id._resolve_pile_ref()
+            signatures = rec._signature_refs_dict()
+            core_signatures = {
+                "inspector": signatures.get("inspector", ""),
+                "reviewer": signatures.get("reviewer", ""),
+            }
             payload = {
                 "pile_ref": pile_ref,
                 "measurements": {
@@ -519,16 +606,14 @@ class BridgePileHoleInspection(models.Model):
                     "hole_detector_passed": bool(rec.hole_detector_passed),
                 },
                 "evidence": rec._evidence_refs_as_list(),
-                "signatures": {
-                    "inspector": rec.inspector_signature_ref or "",
-                    "reviewer": rec.reviewer_signature_ref or "",
-                },
+                "signatures": core_signatures,
             }
             result = submit_bridge_table7(payload, core_url=rec.pile_id._core_url())
             data = rec.pile_id._extract_inspection_payload(result)
             rec.write(
                 {
                     "pile_ref": pile_ref,
+                    "signature_audit_json": rec._build_signature_audit_json(signatures),
                     "core_trip_id": data.get("trip_id") or data.get("tripId"),
                     "core_verdict": data.get("verdict") or data.get("status"),
                     "core_pdf_ref": data.get("pdf_ref"),
@@ -603,7 +688,11 @@ class BridgePileFinalInspection(models.Model):
 
     evidence_refs = fields.Text("佐证材料")
     inspector_signature_ref = fields.Char("检查签名")
+    recorder_signature_ref = fields.Char("记录签名")
+    reviewer_signature_ref = fields.Char("复核签名")
+    construction_signature_ref = fields.Char("施工单位签名")
     supervisor_signature_ref = fields.Char("监理签名")
+    signature_audit_json = fields.Text("签名审计(JSON)", readonly=True, copy=False)
 
     core_trip_id = fields.Char("行程ID", readonly=True, copy=False)
     core_verdict = fields.Char("判定结果", readonly=True, copy=False)
@@ -617,7 +706,76 @@ class BridgePileFinalInspection(models.Model):
         for rec in records:
             if rec.name == "新建":
                 rec.name = f"T13-{fields.Date.today().strftime('%Y%m%d')}-{rec.id:04d}"
+            rec._refresh_signature_audit()
         return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if {
+            "inspector_signature_ref",
+            "recorder_signature_ref",
+            "reviewer_signature_ref",
+            "construction_signature_ref",
+            "supervisor_signature_ref",
+        }.intersection(vals):
+            self._refresh_signature_audit()
+        return res
+
+    def _signature_refs_dict(self):
+        self.ensure_one()
+        return {
+            "inspector": (self.inspector_signature_ref or "").strip(),
+            "recorder": (self.recorder_signature_ref or "").strip(),
+            "reviewer": (self.reviewer_signature_ref or "").strip(),
+            "construction": (self.construction_signature_ref or "").strip(),
+            "supervisor": (self.supervisor_signature_ref or "").strip(),
+        }
+
+    def _build_signature_audit_json(self, signatures=None):
+        self.ensure_one()
+        source = signatures or self._signature_refs_dict()
+        now = fields.Datetime.now()
+        now_text = fields.Datetime.to_string(now)
+        entries = []
+        for role, label in SIGNATURE_ROLE_LABELS.items():
+            value = str(source.get(role) or "").strip()
+            if not value:
+                continue
+            entries.append(
+                {
+                    "role": role,
+                    "label": label,
+                    "signer": value,
+                    "ref": value,
+                    "timestamp": now_text,
+                    "hash": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                }
+            )
+        return json.dumps(entries, ensure_ascii=False)
+
+    def _refresh_signature_audit(self):
+        for rec in self:
+            rec.signature_audit_json = rec._build_signature_audit_json()
+        return True
+
+    def _signature_data_uri(self, signature_ref):
+        self.ensure_one()
+        ref = str(signature_ref or "").strip()
+        if not ref:
+            return ""
+        if ref.startswith("data:image/"):
+            return ref
+        if not ref.startswith("attachment://"):
+            return ""
+        token = ref.split("://", 1)[1].split("?", 1)[0].strip()
+        if not token.isdigit():
+            return ""
+        attachment = self.env["ir.attachment"].sudo().browse(int(token))
+        if not attachment.exists() or not attachment.datas:
+            return ""
+        datas = attachment.datas.decode("utf-8") if isinstance(attachment.datas, bytes) else attachment.datas
+        mimetype = attachment.mimetype or "image/png"
+        return f"data:{mimetype};base64,{datas}"
 
     def action_refresh_from_core(self):
         for rec in self:
@@ -686,9 +844,15 @@ class PileHoleInspectionWizard(models.TransientModel):
     site_photo = fields.Binary("现场照片")
     site_photo_filename = fields.Char("现场照片文件名")
     inspector_signature_draw = fields.Binary("检查手写签名")
+    recorder_signature_draw = fields.Binary("记录手写签名")
     reviewer_signature_draw = fields.Binary("复核手写签名")
+    construction_signature_draw = fields.Binary("施工单位手写签名")
+    supervisor_signature_draw = fields.Binary("监理手写签名")
     inspector_signature_ref = fields.Char("检查签名", default="sig:inspector")
+    recorder_signature_ref = fields.Char("记录签名", default="sig:recorder")
     reviewer_signature_ref = fields.Char("复核签名", default="sig:reviewer")
+    construction_signature_ref = fields.Char("施工单位签名", default="sig:construction")
+    supervisor_signature_ref = fields.Char("监理签名", default="sig:supervisor")
 
     @staticmethod
     def _guess_mimetype(file_name, default_type="application/octet-stream"):
@@ -765,8 +929,13 @@ class PileHoleInspectionWizard(models.TransientModel):
         self.ensure_one()
         pile_ref = self.pile_ref or self.pile_id._resolve_pile_ref()
         evidence_list = self.pile_id._split_refs(self.evidence_refs)
-        inspector_ref = self.inspector_signature_ref or ""
-        reviewer_ref = self.reviewer_signature_ref or ""
+        signatures = {
+            "inspector": self.inspector_signature_ref or "",
+            "recorder": self.recorder_signature_ref or "",
+            "reviewer": self.reviewer_signature_ref or "",
+            "construction": self.construction_signature_ref or "",
+            "supervisor": self.supervisor_signature_ref or "",
+        }
 
         if self.site_photo:
             photo_att = self._create_mobile_attachment(
@@ -782,16 +951,35 @@ class PileHoleInspectionWizard(models.TransientModel):
             if ins_att:
                 ins_ref = f"attachment://{ins_att.id}"
                 evidence_list.append(ins_ref)
-                if not inspector_ref:
-                    inspector_ref = ins_ref
+                signatures["inspector"] = ins_ref
+
+        if self.recorder_signature_draw:
+            rec_att = self._create_mobile_attachment(self.recorder_signature_draw, "recorder_sign.png", "image/png")
+            if rec_att:
+                rec_ref = f"attachment://{rec_att.id}"
+                evidence_list.append(rec_ref)
+                signatures["recorder"] = rec_ref
 
         if self.reviewer_signature_draw:
             rev_att = self._create_mobile_attachment(self.reviewer_signature_draw, "reviewer_sign.png", "image/png")
             if rev_att:
                 rev_ref = f"attachment://{rev_att.id}"
                 evidence_list.append(rev_ref)
-                if not reviewer_ref:
-                    reviewer_ref = rev_ref
+                signatures["reviewer"] = rev_ref
+
+        if self.construction_signature_draw:
+            con_att = self._create_mobile_attachment(self.construction_signature_draw, "construction_sign.png", "image/png")
+            if con_att:
+                con_ref = f"attachment://{con_att.id}"
+                evidence_list.append(con_ref)
+                signatures["construction"] = con_ref
+
+        if self.supervisor_signature_draw:
+            sup_att = self._create_mobile_attachment(self.supervisor_signature_draw, "supervisor_sign.png", "image/png")
+            if sup_att:
+                sup_ref = f"attachment://{sup_att.id}"
+                evidence_list.append(sup_ref)
+                signatures["supervisor"] = sup_ref
 
         payload = {
             "pile_ref": pile_ref,
@@ -805,8 +993,8 @@ class PileHoleInspectionWizard(models.TransientModel):
             },
             "evidence": evidence_list,
             "signatures": {
-                "inspector": inspector_ref,
-                "reviewer": reviewer_ref,
+                "inspector": signatures["inspector"],
+                "reviewer": signatures["reviewer"],
             },
         }
         result = submit_bridge_table7(payload, core_url=self.pile_id._core_url())
@@ -834,8 +1022,26 @@ class PileHoleInspectionWizard(models.TransientModel):
                 "inclination_permille": self.inclination_permille,
                 "hole_detector_passed": self.hole_detector_passed,
                 "evidence_refs": json.dumps(payload["evidence"], ensure_ascii=False),
-                "inspector_signature_ref": payload["signatures"]["inspector"],
-                "reviewer_signature_ref": payload["signatures"]["reviewer"],
+                "inspector_signature_ref": signatures["inspector"],
+                "recorder_signature_ref": signatures["recorder"],
+                "reviewer_signature_ref": signatures["reviewer"],
+                "construction_signature_ref": signatures["construction"],
+                "supervisor_signature_ref": signatures["supervisor"],
+                "signature_audit_json": json.dumps(
+                    [
+                        {
+                            "role": role,
+                            "label": SIGNATURE_ROLE_LABELS[role],
+                            "signer": value,
+                            "ref": value,
+                            "timestamp": fields.Datetime.to_string(fields.Datetime.now()),
+                            "hash": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                        }
+                        for role, value in signatures.items()
+                        if value
+                    ],
+                    ensure_ascii=False,
+                ),
                 "core_trip_id": data.get("trip_id") or data.get("tripId"),
                 "core_verdict": data.get("verdict") or data.get("status"),
                 "core_pdf_ref": data.get("pdf_ref"),
@@ -886,8 +1092,41 @@ class PileFinalInspectionWizard(models.TransientModel):
     integrity_class = fields.Char("完整性等级", required=True, default="I")
 
     evidence_refs = fields.Text("佐证材料（逗号分隔）", default="photo://final-1,report://strength-1")
+    inspector_signature_draw = fields.Binary("检查手写签名")
+    recorder_signature_draw = fields.Binary("记录手写签名")
+    reviewer_signature_draw = fields.Binary("复核手写签名")
+    construction_signature_draw = fields.Binary("施工单位手写签名")
+    supervisor_signature_draw = fields.Binary("监理手写签名")
     inspector_signature_ref = fields.Char("检查签名", default="sig:inspector")
+    recorder_signature_ref = fields.Char("记录签名", default="sig:recorder")
+    reviewer_signature_ref = fields.Char("复核签名", default="sig:reviewer")
+    construction_signature_ref = fields.Char("施工单位签名", default="sig:construction")
     supervisor_signature_ref = fields.Char("监理签名", default="sig:supervisor")
+
+    @staticmethod
+    def _guess_mimetype(file_name, default_type="application/octet-stream"):
+        lower = (file_name or "").lower()
+        if lower.endswith(".png"):
+            return "image/png"
+        if lower.endswith(".jpg") or lower.endswith(".jpeg"):
+            return "image/jpeg"
+        if lower.endswith(".pdf"):
+            return "application/pdf"
+        return default_type
+
+    def _create_mobile_attachment(self, datas, name, mimetype=None):
+        self.ensure_one()
+        if not datas:
+            return None
+        return self.env["ir.attachment"].create(
+            {
+                "name": name or f"mobile_upload_{fields.Datetime.now()}",
+                "datas": datas,
+                "res_model": "bridge.pile",
+                "res_id": self.pile_id.id,
+                "mimetype": mimetype or self._guess_mimetype(name),
+            }
+        )
 
     @api.model
     def default_get(self, fields_list):
@@ -905,6 +1144,31 @@ class PileFinalInspectionWizard(models.TransientModel):
             raise UserError("桥施13提交前置失败：桥施7判定必须为“合格”。")
 
         pile_ref = self.pile_ref or self.pile_id._resolve_pile_ref()
+        evidence_list = self.pile_id._split_refs(self.evidence_refs)
+        signatures = {
+            "inspector": self.inspector_signature_ref or "",
+            "recorder": self.recorder_signature_ref or "",
+            "reviewer": self.reviewer_signature_ref or "",
+            "construction": self.construction_signature_ref or "",
+            "supervisor": self.supervisor_signature_ref or "",
+        }
+        draw_map = [
+            ("inspector", self.inspector_signature_draw, "inspector_sign.png"),
+            ("recorder", self.recorder_signature_draw, "recorder_sign.png"),
+            ("reviewer", self.reviewer_signature_draw, "reviewer_sign.png"),
+            ("construction", self.construction_signature_draw, "construction_sign.png"),
+            ("supervisor", self.supervisor_signature_draw, "supervisor_sign.png"),
+        ]
+        for role, draw_data, file_name in draw_map:
+            if not draw_data:
+                continue
+            att = self._create_mobile_attachment(draw_data, file_name, "image/png")
+            if not att:
+                continue
+            ref = f"attachment://{att.id}"
+            evidence_list.append(ref)
+            signatures[role] = ref
+
         payload = {
             "pile_ref": pile_ref,
             "measurements": {
@@ -918,10 +1182,10 @@ class PileFinalInspectionWizard(models.TransientModel):
                 "actual_strength": self.actual_strength,
                 "integrity_class": self.integrity_class,
             },
-            "evidence": self.pile_id._split_refs(self.evidence_refs),
+            "evidence": evidence_list,
             "signatures": {
-                "inspector": self.inspector_signature_ref or "",
-                "supervisor": self.supervisor_signature_ref or "",
+                "inspector": signatures["inspector"],
+                "supervisor": signatures["supervisor"],
             },
         }
         result = submit_bridge_table13(payload, core_url=self.pile_id._core_url())
@@ -942,8 +1206,26 @@ class PileFinalInspectionWizard(models.TransientModel):
                 "actual_strength": self.actual_strength,
                 "integrity_class": self.integrity_class,
                 "evidence_refs": json.dumps(payload["evidence"], ensure_ascii=False),
-                "inspector_signature_ref": payload["signatures"]["inspector"],
-                "supervisor_signature_ref": payload["signatures"]["supervisor"],
+                "inspector_signature_ref": signatures["inspector"],
+                "recorder_signature_ref": signatures["recorder"],
+                "reviewer_signature_ref": signatures["reviewer"],
+                "construction_signature_ref": signatures["construction"],
+                "supervisor_signature_ref": signatures["supervisor"],
+                "signature_audit_json": json.dumps(
+                    [
+                        {
+                            "role": role,
+                            "label": SIGNATURE_ROLE_LABELS[role],
+                            "signer": value,
+                            "ref": value,
+                            "timestamp": fields.Datetime.to_string(fields.Datetime.now()),
+                            "hash": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+                        }
+                        for role, value in signatures.items()
+                        if value
+                    ],
+                    ensure_ascii=False,
+                ),
                 "core_trip_id": data.get("trip_id") or data.get("tripId"),
                 "core_verdict": data.get("verdict") or data.get("status"),
                 "core_pdf_ref": data.get("pdf_ref"),

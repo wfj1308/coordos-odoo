@@ -163,9 +163,13 @@
           <group string="佐证与签名">
             <field name="evidence_refs"/>
             <field name="inspector_signature_ref"/>
+            <field name="recorder_signature_ref"/>
             <field name="reviewer_signature_ref"/>
+            <field name="construction_signature_ref"/>
+            <field name="supervisor_signature_ref"/>
           </group>
           <group string="结果JSON">
+            <field name="signature_audit_json" readonly="1"/>
             <field name="core_submit_result_json" readonly="1"/>
             <field name="core_query_result_json" readonly="1"/>
           </group>
@@ -229,9 +233,13 @@
           <group string="佐证与签名">
             <field name="evidence_refs"/>
             <field name="inspector_signature_ref"/>
+            <field name="recorder_signature_ref"/>
+            <field name="reviewer_signature_ref"/>
+            <field name="construction_signature_ref"/>
             <field name="supervisor_signature_ref"/>
           </group>
           <group string="结果JSON">
+            <field name="signature_audit_json" readonly="1"/>
             <field name="core_submit_result_json" readonly="1"/>
             <field name="core_query_result_json" readonly="1"/>
           </group>
@@ -333,12 +341,18 @@
           <group string="现场证据（手机友好）">
             <field name="site_photo" widget="image" filename="site_photo_filename" options="{'preview_image': 'site_photo', 'size': [0, 220]}"/>
             <field name="inspector_signature_draw" widget="signature"/>
+            <field name="recorder_signature_draw" widget="signature"/>
             <field name="reviewer_signature_draw" widget="signature"/>
+            <field name="construction_signature_draw" widget="signature"/>
+            <field name="supervisor_signature_draw" widget="signature"/>
           </group>
           <group string="佐证与签名（严格按API）">
             <field name="evidence_refs"/>
             <field name="inspector_signature_ref"/>
+            <field name="recorder_signature_ref"/>
             <field name="reviewer_signature_ref"/>
+            <field name="construction_signature_ref"/>
+            <field name="supervisor_signature_ref"/>
           </group>
         </sheet>
         <footer>
@@ -372,8 +386,16 @@
             <field name="integrity_class"/>
           </group>
           <group string="佐证与签名（严格按API）">
+            <field name="inspector_signature_draw" widget="signature"/>
+            <field name="recorder_signature_draw" widget="signature"/>
+            <field name="reviewer_signature_draw" widget="signature"/>
+            <field name="construction_signature_draw" widget="signature"/>
+            <field name="supervisor_signature_draw" widget="signature"/>
             <field name="evidence_refs"/>
             <field name="inspector_signature_ref"/>
+            <field name="recorder_signature_ref"/>
+            <field name="reviewer_signature_ref"/>
+            <field name="construction_signature_ref"/>
             <field name="supervisor_signature_ref"/>
           </group>
         </sheet>

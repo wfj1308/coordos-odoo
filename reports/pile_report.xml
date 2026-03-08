@@ -89,6 +89,10 @@
               height: 10mm;
               font-size: 14px;
             }
+            .bridge7-sign-img {
+              max-width: 100%;
+              max-height: 9mm;
+            }
             .bridge7-main .row-opinion td {
               height: 33mm;
               font-size: 14px;
@@ -208,11 +212,37 @@
             </tr>
             <tr class="row-sign">
               <td>检查</td>
-              <td><span t-esc="o.inspector_signature_ref or ''"/></td>
+              <td>
+                <t t-set="inspector_sig_src" t-value="o._signature_data_uri(o.inspector_signature_ref)"/>
+                <img t-if="inspector_sig_src" t-att-src="inspector_sig_src" class="bridge7-sign-img"/>
+                <span t-else="" t-esc="o.inspector_signature_ref or ''"/>
+              </td>
               <td>记录</td>
-              <td></td>
+              <td>
+                <t t-set="recorder_sig_src" t-value="o._signature_data_uri(o.recorder_signature_ref)"/>
+                <img t-if="recorder_sig_src" t-att-src="recorder_sig_src" class="bridge7-sign-img"/>
+                <span t-else="" t-esc="o.recorder_signature_ref or ''"/>
+              </td>
               <td>复核</td>
-              <td><span t-esc="o.reviewer_signature_ref or ''"/></td>
+              <td>
+                <t t-set="reviewer_sig_src" t-value="o._signature_data_uri(o.reviewer_signature_ref)"/>
+                <img t-if="reviewer_sig_src" t-att-src="reviewer_sig_src" class="bridge7-sign-img"/>
+                <span t-else="" t-esc="o.reviewer_signature_ref or ''"/>
+              </td>
+            </tr>
+            <tr class="row-sign">
+              <td>施工单位</td>
+              <td colspan="2">
+                <t t-set="construction_sig_src" t-value="o._signature_data_uri(o.construction_signature_ref)"/>
+                <img t-if="construction_sig_src" t-att-src="construction_sig_src" class="bridge7-sign-img"/>
+                <span t-else="" t-esc="o.construction_signature_ref or ''"/>
+              </td>
+              <td>监理工程师</td>
+              <td colspan="2">
+                <t t-set="supervisor_sig_src" t-value="o._signature_data_uri(o.supervisor_signature_ref)"/>
+                <img t-if="supervisor_sig_src" t-att-src="supervisor_sig_src" class="bridge7-sign-img"/>
+                <span t-else="" t-esc="o.supervisor_signature_ref or ''"/>
+              </td>
             </tr>
             <tr class="row-opinion">
               <td colspan="6" class="left">
@@ -305,8 +335,47 @@
 
             <h4 style="margin-top: 12px;">佐证与签名</h4>
             <p><strong>佐证材料：</strong> <span t-esc="o.evidence_refs or ''"/></p>
-            <p><strong>检查签名：</strong> <span t-esc="o.inspector_signature_ref or ''"/></p>
-            <p><strong>监理签名：</strong> <span t-esc="o.supervisor_signature_ref or ''"/></p>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td><strong>检查</strong></td>
+                  <td>
+                    <t t-set="inspector_sig_src" t-value="o._signature_data_uri(o.inspector_signature_ref)"/>
+                    <img t-if="inspector_sig_src" t-att-src="inspector_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.inspector_signature_ref or ''"/>
+                  </td>
+                  <td><strong>记录</strong></td>
+                  <td>
+                    <t t-set="recorder_sig_src" t-value="o._signature_data_uri(o.recorder_signature_ref)"/>
+                    <img t-if="recorder_sig_src" t-att-src="recorder_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.recorder_signature_ref or ''"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>复核</strong></td>
+                  <td>
+                    <t t-set="reviewer_sig_src" t-value="o._signature_data_uri(o.reviewer_signature_ref)"/>
+                    <img t-if="reviewer_sig_src" t-att-src="reviewer_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.reviewer_signature_ref or ''"/>
+                  </td>
+                  <td><strong>施工单位</strong></td>
+                  <td>
+                    <t t-set="construction_sig_src" t-value="o._signature_data_uri(o.construction_signature_ref)"/>
+                    <img t-if="construction_sig_src" t-att-src="construction_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.construction_signature_ref or ''"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>监理工程师</strong></td>
+                  <td colspan="3">
+                    <t t-set="supervisor_sig_src" t-value="o._signature_data_uri(o.supervisor_signature_ref)"/>
+                    <img t-if="supervisor_sig_src" t-att-src="supervisor_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.supervisor_signature_ref or ''"/>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p><strong>签名审计：</strong> <span t-esc="o.signature_audit_json or ''"/></p>
           </div>
         </t>
       </t>

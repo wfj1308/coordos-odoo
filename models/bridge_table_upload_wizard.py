@@ -83,10 +83,14 @@ class BridgeTableUploadWizard(models.TransientModel):
     photo = fields.Binary("Photo")
     photo_name = fields.Char("Photo Name")
     inspector_signature_draw = fields.Binary("Inspector Signature Draw")
+    recorder_signature_draw = fields.Binary("Recorder Signature Draw")
     reviewer_signature_draw = fields.Binary("Reviewer Signature Draw")
+    construction_signature_draw = fields.Binary("Construction Signature Draw")
     supervisor_signature_draw = fields.Binary("Supervisor Signature Draw")
     inspector_signature_ref = fields.Char("Inspector Signature Ref")
+    recorder_signature_ref = fields.Char("Recorder Signature Ref")
     reviewer_signature_ref = fields.Char("Reviewer Signature Ref")
+    construction_signature_ref = fields.Char("Construction Signature Ref")
     supervisor_signature_ref = fields.Char("Supervisor Signature Ref")
 
     generated_trip_shadow_id = fields.Many2one("coordos.trip.shadow", string="Generated Trip")
@@ -414,9 +418,13 @@ class BridgeTableUploadWizard(models.TransientModel):
         if sigs:
             data["inspector_signature_ref"] = sigs[0]
             if len(sigs) > 1:
-                data["reviewer_signature_ref"] = sigs[1]
+                data["recorder_signature_ref"] = sigs[1]
             if len(sigs) > 2:
-                data["supervisor_signature_ref"] = sigs[2]
+                data["reviewer_signature_ref"] = sigs[2]
+            if len(sigs) > 3:
+                data["construction_signature_ref"] = sigs[3]
+            if len(sigs) > 4:
+                data["supervisor_signature_ref"] = sigs[4]
 
         return self._sanitize_obj(data)
 
@@ -479,7 +487,8 @@ class BridgeTableUploadWizard(models.TransientModel):
             "design_depth", "actual_drilled_depth", "design_diameter", "actual_diameter", "inclination_permille",
             "hole_detector_passed", "design_top_elevation", "actual_top_elevation", "design_x", "actual_x",
             "design_y", "actual_y", "design_strength", "actual_strength", "integrity_class",
-            "inspector_signature_ref", "reviewer_signature_ref", "supervisor_signature_ref",
+            "inspector_signature_ref", "recorder_signature_ref", "reviewer_signature_ref",
+            "construction_signature_ref", "supervisor_signature_ref",
         ]:
             if key in data and data.get(key) not in (None, ""):
                 setattr(self, key, data.get(key))
@@ -521,6 +530,13 @@ class BridgeTableUploadWizard(models.TransientModel):
             "bridge_name": self.bridge_name,
             "pier_name": self.pier_name,
             "pile_position": self.pile_position,
+            "signatures": {
+                "inspector": self.inspector_signature_ref or "",
+                "recorder": self.recorder_signature_ref or "",
+                "reviewer": self.reviewer_signature_ref or "",
+                "construction": self.construction_signature_ref or "",
+                "supervisor": self.supervisor_signature_ref or "",
+            },
         })
         now_code = fields.Datetime.now().strftime("%Y%m%d%H%M%S")
         vals = {
@@ -562,7 +578,10 @@ class BridgeTableUploadWizard(models.TransientModel):
             "hole_detector_passed": bool(self.hole_detector_passed),
             "evidence_refs": json.dumps(evidence_list, ensure_ascii=False),
             "inspector_signature_ref": self.inspector_signature_ref or "",
+            "recorder_signature_ref": self.recorder_signature_ref or "",
             "reviewer_signature_ref": self.reviewer_signature_ref or "",
+            "construction_signature_ref": self.construction_signature_ref or "",
+            "supervisor_signature_ref": self.supervisor_signature_ref or "",
         })
 
     def _create_table13_record(self, evidence_list):
@@ -583,8 +602,47 @@ class BridgeTableUploadWizard(models.TransientModel):
             "integrity_class": self.integrity_class or "I",
             "evidence_refs": json.dumps(evidence_list, ensure_ascii=False),
             "inspector_signature_ref": self.inspector_signature_ref or "",
+            "recorder_signature_ref": self.recorder_signature_ref or "",
+            "reviewer_signature_ref": self.reviewer_signature_ref or "",
+            "construction_signature_ref": self.construction_signature_ref or "",
             "supervisor_signature_ref": self.supervisor_signature_ref or "",
         })
+
+    @staticmethod
+    def _parse_evidence_json(raw):
+        text = (raw or "").strip()
+        if not text:
+            return []
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                parsed = None
+            if isinstance(parsed, list):
+                return [str(item).strip() for item in parsed if str(item).strip()]
+        return BridgeTableUploadWizard._split_refs(text)
+
+    def _materialize_drawn_signatures(self, target_model, target_id):
+        self.ensure_one()
+        refs = {}
+        draw_fields = [
+            ("inspector_signature_draw", "inspector_signature_ref", "inspector_sign.png"),
+            ("recorder_signature_draw", "recorder_signature_ref", "recorder_sign.png"),
+            ("reviewer_signature_draw", "reviewer_signature_ref", "reviewer_sign.png"),
+            ("construction_signature_draw", "construction_signature_ref", "construction_sign.png"),
+            ("supervisor_signature_draw", "supervisor_signature_ref", "supervisor_sign.png"),
+        ]
+        for draw_field, ref_field, file_name in draw_fields:
+            draw_data = getattr(self, draw_field)
+            if not draw_data:
+                continue
+            att = self._create_attachment(target_model, target_id, draw_data, file_name, "image/png")
+            if not att:
+                continue
+            ref = f"attachment://{att.id}"
+            refs[ref_field] = ref
+            setattr(self, ref_field, ref)
+        return refs
 
     def action_upload_and_process(self):
         self.ensure_one()
@@ -605,8 +663,6 @@ class BridgeTableUploadWizard(models.TransientModel):
         generated_record = None
         if resolved_type == "7":
             generated_record = self._create_table7_record(evidence_list)
-            if self.auto_submit_core:
-                generated_record.action_submit_to_core()
         elif resolved_type == "13":
             generated_record = self._create_table13_record(evidence_list)
 
@@ -619,23 +675,46 @@ class BridgeTableUploadWizard(models.TransientModel):
         extra_refs = []
         if attachment:
             extra_refs.append(f"attachment://{attachment.id}")
+        draw_refs = self._materialize_drawn_signatures(target_model, target_id)
+        extra_refs.extend(draw_refs.values())
 
         if generated_record and resolved_type == "7":
             refs = generated_record._evidence_refs_as_list()
             refs.extend(extra_refs)
             generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
-            if self.inspector_signature_ref:
-                generated_record.inspector_signature_ref = self.inspector_signature_ref
-            if self.reviewer_signature_ref:
-                generated_record.reviewer_signature_ref = self.reviewer_signature_ref
+            signature_vals = {}
+            for field_name in [
+                "inspector_signature_ref",
+                "recorder_signature_ref",
+                "reviewer_signature_ref",
+                "construction_signature_ref",
+                "supervisor_signature_ref",
+            ]:
+                value = (draw_refs.get(field_name) or getattr(self, field_name) or "").strip()
+                if value:
+                    signature_vals[field_name] = value
+            if signature_vals:
+                generated_record.write(signature_vals)
         elif generated_record and resolved_type == "13":
-            refs = self._split_refs(generated_record.evidence_refs)
+            refs = self._parse_evidence_json(generated_record.evidence_refs)
             refs.extend(extra_refs)
             generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
-            if self.inspector_signature_ref:
-                generated_record.inspector_signature_ref = self.inspector_signature_ref
-            if self.supervisor_signature_ref:
-                generated_record.supervisor_signature_ref = self.supervisor_signature_ref
+            signature_vals = {}
+            for field_name in [
+                "inspector_signature_ref",
+                "recorder_signature_ref",
+                "reviewer_signature_ref",
+                "construction_signature_ref",
+                "supervisor_signature_ref",
+            ]:
+                value = (draw_refs.get(field_name) or getattr(self, field_name) or "").strip()
+                if value:
+                    signature_vals[field_name] = value
+            if signature_vals:
+                generated_record.write(signature_vals)
+
+        if generated_record and resolved_type == "7" and self.auto_submit_core:
+            generated_record.action_submit_to_core()
 
         self.generated_trip_shadow_id = trip.id
         self.generated_model = target_model
