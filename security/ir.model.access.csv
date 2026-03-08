@@ -28,3 +28,4 @@ access_bridge_pile_nonconformance_user,bridge.pile.nonconformance.user,model_bri
 access_pile_hole_inspection_wizard_user,pile.hole.inspection.wizard.user,model_pile_hole_inspection_wizard,base.group_user,1,1,1,1
 access_pile_final_inspection_wizard_user,pile.final.inspection.wizard.user,model_pile_final_inspection_wizard,base.group_user,1,1,1,1
 access_bridge_table_upload_wizard_user,bridge.table.upload.wizard.user,model_bridge_table_upload_wizard,base.group_user,1,1,1,1
+access_coordos_quality_table_record_user,coordos.quality.table.record.user,model_coordos_quality_table_record,base.group_user,1,1,1,1

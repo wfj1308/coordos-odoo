@@ -8,6 +8,7 @@ from . import project_import_wizard
 from . import qa_wizard
 from . import parser_profile
 from . import bridge_table_upload_wizard
+from . import quality_table
 from . import ir_actions_report
 from . import pile
 from . import spu

@@ -1,0 +1,106 @@
+<odoo>
+  <record id="action_report_quality_table_generic" model="ir.actions.report">
+    <field name="name">通用质检表PDF</field>
+    <field name="model">coordos.quality.table.record</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">coordos_odoo.report_quality_table_generic</field>
+    <field name="report_file">coordos_odoo.report_quality_table_generic</field>
+    <field name="print_report_name">'通用质检表_%s' % (object.name or object.id)</field>
+  </record>
+
+  <template id="report_quality_table_generic">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+        <t t-call="web.external_layout">
+          <div class="page">
+            <h2 style="text-align:center; margin-bottom: 8px;">
+              <span t-esc="o.table_title or '通用质检表数字记录'"/>
+            </h2>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td><strong>记录编号</strong></td>
+                  <td><span t-esc="o.name or ''"/></td>
+                  <td><strong>检查日期</strong></td>
+                  <td><span t-esc="o.check_date or ''"/></td>
+                </tr>
+                <tr>
+                  <td><strong>类型编码</strong></td>
+                  <td><span t-esc="o.table_type_code or ''"/></td>
+                  <td><strong>源文件名</strong></td>
+                  <td><span t-esc="o.source_file_name or ''"/></td>
+                </tr>
+                <tr>
+                  <td><strong>桩位引用</strong></td>
+                  <td><span t-esc="o.pile_ref or ''"/></td>
+                  <td><strong>USI路径</strong></td>
+                  <td><span t-esc="o.usi_path or ''"/></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin-top: 12px;">可编辑数据</h4>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="width:30%;">字段</th>
+                  <th style="width:70%;">值</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr t-foreach="o._display_items_for_report()" t-as="item">
+                  <td><span t-esc="item.get('key')"/></td>
+                  <td style="word-break:break-all;"><span t-esc="item.get('value')"/></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin-top: 12px;">佐证与签名</h4>
+            <p><strong>证据：</strong><span t-esc="o.evidence_refs or ''"/></p>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td><strong>检查</strong></td>
+                  <td>
+                    <t t-set="inspector_sig_src" t-value="o._signature_data_uri(o.inspector_signature_ref)"/>
+                    <img t-if="inspector_sig_src" t-att-src="inspector_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.inspector_signature_ref or ''"/>
+                  </td>
+                  <td><strong>记录</strong></td>
+                  <td>
+                    <t t-set="recorder_sig_src" t-value="o._signature_data_uri(o.recorder_signature_ref)"/>
+                    <img t-if="recorder_sig_src" t-att-src="recorder_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.recorder_signature_ref or ''"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>复核</strong></td>
+                  <td>
+                    <t t-set="reviewer_sig_src" t-value="o._signature_data_uri(o.reviewer_signature_ref)"/>
+                    <img t-if="reviewer_sig_src" t-att-src="reviewer_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.reviewer_signature_ref or ''"/>
+                  </td>
+                  <td><strong>施工单位</strong></td>
+                  <td>
+                    <t t-set="construction_sig_src" t-value="o._signature_data_uri(o.construction_signature_ref)"/>
+                    <img t-if="construction_sig_src" t-att-src="construction_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.construction_signature_ref or ''"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>监理工程师</strong></td>
+                  <td colspan="3">
+                    <t t-set="supervisor_sig_src" t-value="o._signature_data_uri(o.supervisor_signature_ref)"/>
+                    <img t-if="supervisor_sig_src" t-att-src="supervisor_sig_src" style="max-height:30px; max-width:120px;"/>
+                    <span t-else="" t-esc="o.supervisor_signature_ref or ''"/>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p><strong>签名审计：</strong><span t-esc="o.signature_audit_json or ''"/></p>
+          </div>
+        </t>
+      </t>
+    </t>
+  </template>
+</odoo>

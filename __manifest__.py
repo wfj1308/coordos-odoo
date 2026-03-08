@@ -16,10 +16,12 @@
         'views/config_views.xml',
         'views/pile_views.xml',
         'views/bridge_table_upload_views.xml',
+        'views/quality_table_views.xml',
         'views/spu_views.xml',
         'views/trip_views.xml',
         'views/qa_views.xml',
         'reports/pile_report.xml',
+        'reports/quality_table_report.xml',
     ],
     'installable': True,
 }

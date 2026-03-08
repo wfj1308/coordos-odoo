@@ -1,0 +1,80 @@
+<odoo>
+  <record id="view_quality_table_record_tree" model="ir.ui.view">
+    <field name="name">coordos.quality.table.record.tree</field>
+    <field name="model">coordos.quality.table.record</field>
+    <field name="arch" type="xml">
+      <tree string="通用质检表记录">
+        <field name="name"/>
+        <field name="table_title"/>
+        <field name="table_type_code"/>
+        <field name="check_date"/>
+        <field name="pile_ref"/>
+        <field name="trip_shadow_id"/>
+        <field name="source_file_name"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_quality_table_record_form" model="ir.ui.view">
+    <field name="name">coordos.quality.table.record.form</field>
+    <field name="model">coordos.quality.table.record</field>
+    <field name="arch" type="xml">
+      <form string="通用质检表记录">
+        <header>
+          <button name="action_print_quality_table" type="object" string="打印通用PDF" class="btn-primary"/>
+          <button name="action_open_source_file" type="object" string="打开源文件" class="btn-secondary" invisible="not source_attachment_id"/>
+        </header>
+        <sheet>
+          <group string="基础信息">
+            <field name="name" readonly="1"/>
+            <field name="table_title"/>
+            <field name="table_type_code"/>
+            <field name="source_file_name"/>
+            <field name="source_attachment_id" readonly="1"/>
+            <field name="trip_shadow_id" readonly="1"/>
+            <field name="check_date"/>
+          </group>
+          <group string="USI补全">
+            <field name="pile_id"/>
+            <field name="pile_ref"/>
+            <field name="usi_path"/>
+            <field name="usi_full_path"/>
+            <field name="engineering_name"/>
+            <field name="construction_unit"/>
+            <field name="supervision_unit"/>
+            <field name="contract_no"/>
+            <field name="bridge_name"/>
+            <field name="pier_name"/>
+            <field name="pile_position"/>
+          </group>
+          <group string="内容与证据">
+            <field name="evidence_refs"/>
+            <field name="ocr_text"/>
+            <field name="parsed_data_json"/>
+            <field name="editable_data_json"/>
+          </group>
+          <group string="签名与审计">
+            <field name="inspector_signature_ref"/>
+            <field name="recorder_signature_ref"/>
+            <field name="reviewer_signature_ref"/>
+            <field name="construction_signature_ref"/>
+            <field name="supervisor_signature_ref"/>
+            <field name="signature_audit_json" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_quality_table_record" model="ir.actions.act_window">
+    <field name="name">通用质检表记录</field>
+    <field name="res_model">coordos.quality.table.record</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem id="menu_quality_table_record"
+            name="通用质检表记录"
+            parent="menu_bridge_pile"
+            action="action_quality_table_record"
+            sequence="35"/>
+</odoo>

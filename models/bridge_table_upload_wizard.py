@@ -206,6 +206,35 @@ class BridgeTableUploadWizard(models.TransientModel):
         normalized = normalized.replace("：", ":").replace("，", ",")
         return normalized
 
+    @staticmethod
+    def _extract_generic_kv_pairs(text, max_items=200):
+        rows = {}
+        for raw_line in (text or "").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            matched = re.match(r"^([^\s:：]{1,40})\s*[:：]\s*(.+)$", line)
+            if not matched:
+                continue
+            key = matched.group(1).strip()
+            value = matched.group(2).strip()
+            if not key or not value:
+                continue
+            rows[key] = value
+            if len(rows) >= max_items:
+                break
+        return rows
+
+    @staticmethod
+    def _extract_table_title(text):
+        lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+        if not lines:
+            return ""
+        for line in lines[:20]:
+            if 4 <= len(line) <= 60 and ("表" in line or "检查" in line or "检验" in line):
+                return line
+        return lines[0][:60]
+
     def _guess_table_type(self, text):
         normalized = self._normalize_for_match(text)
         rules7 = [
@@ -384,6 +413,7 @@ class BridgeTableUploadWizard(models.TransientModel):
             data["pile_ref"] = pile_ref_match.group(0)
 
         data["table_type"] = self._guess_table_type(normalized)
+        data["table_title"] = self._extract_table_title(normalized)
         data["check_date"] = self._extract_date(normalized)
 
         data["design_depth"] = self._extract_first_float(normalized_no_space, [r"(?:\u5e94\u94bb\u6df1\u5ea6|design_depth)[:：]?\s*(-?\d+(?:\.\d+)?)"])
@@ -425,6 +455,10 @@ class BridgeTableUploadWizard(models.TransientModel):
                 data["construction_signature_ref"] = sigs[3]
             if len(sigs) > 4:
                 data["supervisor_signature_ref"] = sigs[4]
+
+        generic_fields = self._extract_generic_kv_pairs(normalized)
+        if generic_fields:
+            data["generic_fields"] = generic_fields
 
         return self._sanitize_obj(data)
 
@@ -608,6 +642,66 @@ class BridgeTableUploadWizard(models.TransientModel):
             "supervisor_signature_ref": self.supervisor_signature_ref or "",
         })
 
+    def _create_generic_record(self, evidence_list, trip_shadow):
+        self.ensure_one()
+        parsed_text = (self.parsed_data_json or "").strip()
+        try:
+            parsed_payload = json.loads(parsed_text) if parsed_text else {}
+        except Exception:
+            parsed_payload = {}
+        if not isinstance(parsed_payload, dict):
+            parsed_payload = {"raw": parsed_payload}
+
+        generic_fields = parsed_payload.get("generic_fields")
+        if not isinstance(generic_fields, dict):
+            generic_fields = {}
+        editable_payload = dict(generic_fields)
+        for key in [
+            "pile_ref",
+            "check_date",
+            "engineering_name",
+            "construction_unit",
+            "supervision_unit",
+            "contract_no",
+            "bridge_name",
+            "pier_name",
+            "pile_position",
+        ]:
+            value = parsed_payload.get(key)
+            if value not in (None, ""):
+                editable_payload[key] = value
+
+        table_title = parsed_payload.get("table_title") or self.file_name or self.photo_name or "通用质检表"
+        return self.env["coordos.quality.table.record"].create(
+            {
+                "table_title": self._clean_text(table_title),
+                "table_type_code": self.resolved_table_type or self.table_type or "other",
+                "source_file_name": self.file_name or self.photo_name or "",
+                "trip_shadow_id": trip_shadow.id if trip_shadow else False,
+                "pile_id": self.pile_id.id if self.pile_id else False,
+                "pile_ref": self.pile_ref or "",
+                "check_date": self.check_date or fields.Date.today(),
+                "usi_path": self.usi_path or "",
+                "usi_full_path": self.usi_full_path or self.usi_path or "",
+                "engineering_name": self.engineering_name or "",
+                "construction_unit": self.construction_unit or "",
+                "supervision_unit": self.supervision_unit or "",
+                "contract_no": self.contract_no or "",
+                "bridge_name": self.bridge_name or "",
+                "pier_name": self.pier_name or "",
+                "pile_position": self.pile_position or "",
+                "ocr_text": self.ocr_result or "",
+                "parsed_data_json": json.dumps(parsed_payload, ensure_ascii=False),
+                "editable_data_json": json.dumps(editable_payload, ensure_ascii=False),
+                "evidence_refs": json.dumps(evidence_list, ensure_ascii=False),
+                "inspector_signature_ref": self.inspector_signature_ref or "",
+                "recorder_signature_ref": self.recorder_signature_ref or "",
+                "reviewer_signature_ref": self.reviewer_signature_ref or "",
+                "construction_signature_ref": self.construction_signature_ref or "",
+                "supervisor_signature_ref": self.supervisor_signature_ref or "",
+            }
+        )
+
     @staticmethod
     def _parse_evidence_json(raw):
         text = (raw or "").strip()
@@ -665,6 +759,8 @@ class BridgeTableUploadWizard(models.TransientModel):
             generated_record = self._create_table7_record(evidence_list)
         elif resolved_type == "13":
             generated_record = self._create_table13_record(evidence_list)
+        else:
+            generated_record = self._create_generic_record(evidence_list, trip)
 
         target_model = generated_record._name if generated_record else "coordos.trip.shadow"
         target_id = generated_record.id if generated_record else trip.id
@@ -675,6 +771,8 @@ class BridgeTableUploadWizard(models.TransientModel):
         extra_refs = []
         if attachment:
             extra_refs.append(f"attachment://{attachment.id}")
+            if generated_record and hasattr(generated_record, "source_attachment_id"):
+                generated_record.source_attachment_id = attachment.id
         draw_refs = self._materialize_drawn_signatures(target_model, target_id)
         extra_refs.extend(draw_refs.values())
 
@@ -697,6 +795,23 @@ class BridgeTableUploadWizard(models.TransientModel):
                 generated_record.write(signature_vals)
         elif generated_record and resolved_type == "13":
             refs = self._parse_evidence_json(generated_record.evidence_refs)
+            refs.extend(extra_refs)
+            generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
+            signature_vals = {}
+            for field_name in [
+                "inspector_signature_ref",
+                "recorder_signature_ref",
+                "reviewer_signature_ref",
+                "construction_signature_ref",
+                "supervisor_signature_ref",
+            ]:
+                value = (draw_refs.get(field_name) or getattr(self, field_name) or "").strip()
+                if value:
+                    signature_vals[field_name] = value
+            if signature_vals:
+                generated_record.write(signature_vals)
+        elif generated_record:
+            refs = generated_record._split_refs(generated_record.evidence_refs)
             refs.extend(extra_refs)
             generated_record.evidence_refs = json.dumps(refs, ensure_ascii=False)
             signature_vals = {}
