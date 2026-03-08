@@ -1,0 +1,420 @@
+﻿<odoo>
+  <record id="view_trip_shadow_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.tree</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <tree string="行程列表">
+        <field name="name" string="名称"/>
+        <field name="core_trip_id" string="行程ID"/>
+        <field name="project_node" string="项目节点"/>
+        <field name="trip_template" string="行程模板"/>
+        <field name="x_status" string="状态"/>
+        <field name="x_last_sync_at" string="最近同步时间"/>
+        <button name="action_open_launch_wizard" type="object" string="启动"/>
+        <button name="action_open_execute_step_wizard" type="object" string="执行步骤"/>
+        <button name="action_open_upload_evidence_wizard" type="object" string="上传证据"/>
+        <button name="action_refresh_status" type="object" string="刷新"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_trip_shadow_form" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.form</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <form string="行程详情">
+        <header>
+          <button name="action_open_launch_wizard" type="object" string="启动行程" class="btn-primary"/>
+          <button name="action_open_execute_step_wizard" type="object" string="执行步骤" class="btn-secondary"/>
+          <button name="action_open_upload_evidence_wizard" type="object" string="上传证据" class="btn-secondary"/>
+          <button name="action_open_certify_wizard" type="object" string="签发认证" class="btn-secondary"/>
+          <button name="action_refresh_status" type="object" string="刷新状态" class="btn-secondary"/>
+          <button name="action_pull_ledger" type="object" string="刷新账本" class="btn-secondary"/>
+          <button name="action_submit_assert" type="object" string="断言 / 提交" class="btn-secondary"/>
+          <button name="action_issue_result" type="object" string="签发结果" class="btn-secondary"/>
+        </header>
+        <sheet>
+          <group string="基础信息">
+            <field name="name"/>
+            <field name="core_trip_id" readonly="1"/>
+            <field name="x_status" readonly="1"/>
+            <field name="x_dispatch_plan_id" readonly="1"/>
+            <field name="project_node"/>
+            <field name="trip_template"/>
+            <field name="input_json"/>
+          </group>
+          <group string="回写字段">
+            <field name="x_admission_id" readonly="1"/>
+            <field name="x_evidence_ids" readonly="1"/>
+            <field name="x_ledger_json" readonly="1"/>
+            <field name="x_assertion_result" readonly="1"/>
+            <field name="x_prc_hash" readonly="1"/>
+            <field name="x_utxo_id" readonly="1"/>
+            <field name="x_last_sync_at" readonly="1"/>
+          </group>
+          <group string="结果摘要卡片">
+            <field name="x_evidence_summary" readonly="1"/>
+            <field name="x_assertion_result" readonly="1"/>
+            <field name="x_prc_summary" readonly="1"/>
+            <field name="x_ledger_summary" readonly="1"/>
+            <field name="x_utxo_summary" readonly="1"/>
+          </group>
+          <group string="可视卡片">
+            <field name="x_dashboard_evidence_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_prc_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_ledger_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_utxo_html" widget="html" readonly="1"/>
+          </group>
+          <group string="证据列表">
+            <field name="evidence_item_ids" nolabel="1" readonly="1">
+              <tree create="0" edit="0" delete="0">
+                <field name="evidence_kind" string="类型"/>
+                <field name="evidence_ref" string="证据"/>
+              </tree>
+            </field>
+          </group>
+          <group string="流程日志">
+            <field name="process_log_ids" nolabel="1" readonly="1">
+              <tree create="0" edit="0" delete="0">
+                <field name="step_code" string="步骤编码"/>
+                <field name="started_at" string="开始时间"/>
+                <field name="ended_at" string="结束时间"/>
+                <field name="metrics_json" string="指标"/>
+              </tree>
+            </field>
+          </group>
+          <group string="步骤载荷">
+            <field name="evidence_json"/>
+            <field name="assert_json"/>
+            <field name="mint_json"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_trip_detail_min_form" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.detail.min.form</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <form string="行程详情">
+        <header>
+          <button name="action_open_launch_wizard" type="object" string="启动行程" class="btn-primary"/>
+          <button name="action_open_execute_step_wizard" type="object" string="执行步骤" class="btn-primary"/>
+          <button name="action_open_upload_evidence_wizard" type="object" string="上传证据" class="btn-secondary"/>
+          <button name="action_open_certify_wizard" type="object" string="签发认证" class="btn-secondary"/>
+          <button name="action_submit_assert" type="object" string="断言 / 提交" class="btn-secondary"/>
+          <button name="action_issue_result" type="object" string="签发结果" class="btn-secondary"/>
+          <button name="action_refresh_status" type="object" string="刷新状态" class="btn-secondary"/>
+          <button name="action_pull_ledger" type="object" string="刷新账本" class="btn-secondary"/>
+        </header>
+        <sheet>
+          <group string="行程详情">
+            <field name="core_trip_id" string="行程ID" readonly="1"/>
+            <field name="x_status" string="状态" readonly="1"/>
+            <field name="x_dispatch_plan_id" string="调度计划ID" readonly="1"/>
+            <field name="project_node" string="项目节点" readonly="1"/>
+            <field name="trip_template" string="行程模板" readonly="1"/>
+          </group>
+          <group string="流程日志">
+            <field name="process_log_ids" nolabel="1" readonly="1">
+              <tree create="0" edit="0" delete="0">
+                <field name="step_code" string="步骤编码"/>
+                <field name="started_at" string="开始时间"/>
+                <field name="ended_at" string="结束时间"/>
+                <field name="metrics_json" string="指标"/>
+              </tree>
+            </field>
+          </group>
+          <group string="证据 -> 账本">
+            <field name="x_evidence_ids" readonly="1"/>
+            <field name="x_ledger_json" readonly="1"/>
+            <field name="x_assertion_result" readonly="1"/>
+            <field name="x_prc_hash" readonly="1"/>
+            <field name="x_utxo_id" readonly="1"/>
+          </group>
+          <group string="摘要卡片">
+            <field name="x_evidence_summary" readonly="1"/>
+            <field name="x_prc_summary" readonly="1"/>
+            <field name="x_ledger_summary" readonly="1"/>
+            <field name="x_utxo_summary" readonly="1"/>
+          </group>
+          <group string="可视卡片">
+            <field name="x_dashboard_evidence_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_prc_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_ledger_html" widget="html" readonly="1"/>
+            <field name="x_dashboard_utxo_html" widget="html" readonly="1"/>
+          </group>
+          <group string="证据列表">
+            <field name="evidence_item_ids" nolabel="1" readonly="1">
+              <tree create="0" edit="0" delete="0">
+                <field name="evidence_kind" string="类型"/>
+                <field name="evidence_ref" string="证据"/>
+              </tree>
+            </field>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_trip_shadow" model="ir.actions.act_window">
+    <field name="name">行程</field>
+    <field name="res_model">coordos.trip.shadow</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_trip_cert_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.cert.tree</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <tree string="认证列表">
+        <field name="name" string="名称"/>
+        <field name="core_trip_id" string="行程ID"/>
+        <field name="x_status" string="状态"/>
+        <field name="x_assertion_result" string="断言结果"/>
+        <field name="x_prc_hash" string="PRC哈希"/>
+        <field name="x_last_sync_at" string="最近同步时间"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="action_coordos_certification" model="ir.actions.act_window">
+    <field name="name">认证</field>
+    <field name="res_model">coordos.trip.shadow</field>
+    <field name="view_mode">tree,form</field>
+    <field name="view_id" ref="view_trip_cert_tree"/>
+    <field name="domain">['|', ('x_prc_hash', '!=', False), ('x_assertion_result', '!=', False)]</field>
+  </record>
+
+  <record id="view_trip_ledger_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.ledger.tree</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <tree string="账本 / UTXO">
+        <field name="name" string="名称"/>
+        <field name="core_trip_id" string="行程ID"/>
+        <field name="x_status" string="状态"/>
+        <field name="x_utxo_id" string="UTXO ID"/>
+        <field name="x_ledger_summary" string="账本摘要"/>
+        <field name="x_last_sync_at" string="最近同步时间"/>
+        <button name="action_pull_ledger" type="object" string="刷新账本"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="action_coordos_ledger" model="ir.actions.act_window">
+    <field name="name">账本</field>
+    <field name="res_model">coordos.trip.shadow</field>
+    <field name="view_mode">tree,form</field>
+    <field name="view_id" ref="view_trip_ledger_tree"/>
+    <field name="domain">['|', ('x_utxo_id', '!=', False), ('x_ledger_json', '!=', False)]</field>
+  </record>
+
+  <record id="view_trip_evidence_item_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.evidence.item.tree</field>
+    <field name="model">coordos.trip.evidence.item</field>
+    <field name="arch" type="xml">
+      <tree string="证据列表" create="0" edit="0" delete="0">
+        <field name="trip_shadow_id" string="所属行程"/>
+        <field name="evidence_kind" string="类型"/>
+        <field name="evidence_ref" string="证据引用"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_trip_evidence_item_form" model="ir.ui.view">
+    <field name="name">coordos.trip.evidence.item.form</field>
+    <field name="model">coordos.trip.evidence.item</field>
+    <field name="arch" type="xml">
+      <form string="证据详情" create="0" edit="0" delete="0">
+        <sheet>
+          <group>
+            <field name="trip_shadow_id"/>
+            <field name="evidence_kind"/>
+            <field name="evidence_ref"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_evidence" model="ir.actions.act_window">
+    <field name="name">证据</field>
+    <field name="res_model">coordos.trip.evidence.item</field>
+    <field name="view_mode">tree,form</field>
+    <field name="view_id" ref="view_trip_evidence_item_tree"/>
+  </record>
+
+  <record id="view_trip_shadow_search" model="ir.ui.view">
+    <field name="name">coordos.trip.shadow.search</field>
+    <field name="model">coordos.trip.shadow</field>
+    <field name="arch" type="xml">
+      <search string="搜索行程">
+        <field name="name"/>
+        <field name="core_trip_id"/>
+        <field name="project_node"/>
+        <field name="trip_template"/>
+        <field name="x_status"/>
+      </search>
+    </field>
+  </record>
+
+  <record id="action_trip_sync_server" model="ir.actions.server">
+    <field name="name">从 Core 同步行程</field>
+    <field name="model_id" ref="model_coordos_trip_shadow"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_sync_from_core()</field>
+  </record>
+
+  <record id="view_trip_launch_wizard_form" model="ir.ui.view">
+    <field name="name">launch.trip.wizard.form</field>
+    <field name="model">launch.trip.wizard</field>
+    <field name="arch" type="xml">
+      <form string="启动行程">
+        <sheet>
+          <group string="基础信息">
+            <field name="trip_shadow_id" invisible="1"/>
+            <field name="project_node_ref" string="项目节点"/>
+            <field name="project_node" string="项目节点ID" readonly="1"/>
+            <field name="trip_template" string="行程模板"/>
+            <field name="operator_id" string="操作人（可选）"/>
+            <field name="energy_consumed" string="能耗值"/>
+          </group>
+          <group string="模板元数据">
+            <field name="template_item_code" readonly="1"/>
+            <field name="template_id" readonly="1"/>
+            <field name="template_yaml_path" readonly="1"/>
+          </group>
+          <group string="自动生成输入项">
+            <field name="input_line_ids" nolabel="1">
+              <tree editable="bottom" create="0" delete="0">
+                <field name="sequence" invisible="1"/>
+                <field name="label" string="字段" readonly="1"/>
+                <field name="key" string="键" readonly="1"/>
+                <field name="value_type" string="类型" readonly="1"/>
+                <field name="value_text" string="值"/>
+              </tree>
+            </field>
+          </group>
+          <group string="输入JSON（可手工编辑）">
+            <field name="input_json" string="输入JSON"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_launch" type="object" string="启动" class="btn-primary"/>
+          <button string="取消" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_trip_launch_wizard" model="ir.actions.act_window">
+    <field name="name">启动行程</field>
+    <field name="res_model">launch.trip.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+    <field name="context">
+      {
+        'default_project_node': 'v://project-node/g25-a1/bridge1/pier3/pile@v1',
+        'default_trip_template': 'pile_construction',
+        'default_input_json': '{"diameter_mm": 1500, "depth_m": 32, "concrete_grade": "C40"}'
+      }
+    </field>
+  </record>
+
+  <record id="view_execute_trip_step_wizard_form" model="ir.ui.view">
+    <field name="name">execute.trip.step.wizard.form</field>
+    <field name="model">execute.trip.step.wizard</field>
+    <field name="arch" type="xml">
+      <form string="执行步骤">
+        <sheet>
+          <group>
+            <field name="trip_shadow_id" string="行程" readonly="1"/>
+            <field name="step_code" string="步骤编码"/>
+            <field name="started_at" string="开始时间"/>
+            <field name="ended_at" string="结束时间"/>
+            <field name="metrics_json" string="指标JSON"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_execute" type="object" string="执行步骤" class="btn-primary"/>
+          <button string="取消" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_execute_trip_step_wizard" model="ir.actions.act_window">
+    <field name="name">执行步骤</field>
+    <field name="res_model">execute.trip.step.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <record id="view_upload_trip_evidence_wizard_form" model="ir.ui.view">
+    <field name="name">upload.trip.evidence.wizard.form</field>
+    <field name="model">upload.trip.evidence.wizard</field>
+    <field name="arch" type="xml">
+      <form string="上传证据">
+        <sheet>
+          <group>
+            <field name="trip_shadow_id" string="行程" readonly="1"/>
+            <field name="photo_refs" string="照片"/>
+            <field name="report_refs" string="报告"/>
+            <field name="artifact_refs" string="工件"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_upload" type="object" string="上传证据" class="btn-primary"/>
+          <button string="取消" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_upload_trip_evidence_wizard" model="ir.actions.act_window">
+    <field name="name">上传证据</field>
+    <field name="res_model">upload.trip.evidence.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <record id="view_certify_trip_wizard_form" model="ir.ui.view">
+    <field name="name">certify.trip.wizard.form</field>
+    <field name="model">certify.trip.wizard</field>
+    <field name="arch" type="xml">
+      <form string="签发认证">
+        <sheet>
+          <group>
+            <field name="trip_shadow_id" string="行程" readonly="1"/>
+            <field name="evidence_ids_text" string="证据ID列表(JSON)"/>
+            <field name="quantity" string="数量"/>
+            <field name="unit_price" string="单价"/>
+            <field name="extra_json" string="扩展JSON"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_certify" type="object" string="签发认证" class="btn-primary"/>
+          <button string="取消" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_certify_trip_wizard" model="ir.actions.act_window">
+    <field name="name">签发认证</field>
+    <field name="res_model">certify.trip.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <menuitem id="menu_coordos_trip" name="行程" parent="menu_coordos_root" action="action_coordos_trip_shadow" sequence="30"/>
+  <menuitem id="menu_coordos_evidence" name="证据" parent="menu_coordos_root" action="action_coordos_evidence" sequence="40"/>
+  <menuitem id="menu_coordos_certification" name="认证" parent="menu_coordos_root" action="action_coordos_certification" sequence="50"/>
+  <menuitem id="menu_coordos_ledger" name="账本" parent="menu_coordos_root" action="action_coordos_ledger" sequence="60"/>
+
+  <menuitem id="menu_coordos_trip_list" name="行程列表（隐藏）" parent="menu_coordos_trip" action="action_coordos_trip_shadow" sequence="5" groups="base.group_no_one"/>
+  <menuitem id="menu_coordos_launch_trip" name="启动行程（隐藏）" parent="menu_coordos_trip" action="action_trip_launch_wizard" sequence="10" groups="base.group_no_one"/>
+  <menuitem id="menu_coordos_sync_trip" name="同步行程（隐藏）" parent="menu_coordos_trip" action="action_trip_sync_server" sequence="20" groups="base.group_no_one"/>
+</odoo>

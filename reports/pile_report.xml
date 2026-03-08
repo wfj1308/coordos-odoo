@@ -1,0 +1,315 @@
+﻿<odoo>
+  <record id="action_report_bridge_table7" model="ir.actions.report">
+    <field name="name">桥施7表-桩基成孔检查</field>
+    <field name="model">bridge.pile.hole.inspection</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">coordos_shell.report_bridge_table7</field>
+    <field name="report_file">coordos_shell.report_bridge_table7</field>
+    <field name="print_report_name">'桥施7_%s' % (object.pile_id.name or object.name)</field>
+  </record>
+
+  <record id="action_report_bridge_table13" model="ir.actions.report">
+    <field name="name">桥施13表-桩基成桩检查</field>
+    <field name="model">bridge.pile.final.inspection</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">coordos_shell.report_bridge_table13</field>
+    <field name="report_file">coordos_shell.report_bridge_table13</field>
+    <field name="print_report_name">'桥施13_%s' % (object.pile_id.name or object.name)</field>
+  </record>
+
+  <template id="report_bridge_table7">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+        <div class="page bridge7-page">
+          <style>
+            @page { size: A4 portrait; margin: 7mm 7mm 7mm 7mm; }
+            .bridge7-page {
+              font-family: "SimSun", "Songti SC", "Microsoft YaHei", "Noto Sans CJK SC", serif;
+              font-size: 13px;
+              color: #000;
+              line-height: 1.15;
+              width: 196mm;
+              margin: 0 auto;
+            }
+            .bridge7-title {
+              text-align: center;
+              line-height: 1.2;
+              margin-bottom: 4px;
+              height: 16mm;
+            }
+            .bridge7-title .line1 {
+              font-size: 18px;
+              font-weight: 700;
+            }
+            .bridge7-title .line2 {
+              font-size: 20px;
+              font-weight: 700;
+            }
+            .bridge7-header,
+            .bridge7-main {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+            }
+            .bridge7-header td {
+              border: 0;
+              padding: 2px 6px;
+              font-size: 13px;
+              height: 6.5mm;
+              vertical-align: middle;
+            }
+            .bridge7-header .right {
+              text-align: right;
+            }
+            .bridge7-main {
+              border: 1.4px solid #000;
+            }
+            .bridge7-main td {
+              border: 1px solid #000;
+              padding: 4px 6px;
+              text-align: center;
+              vertical-align: middle;
+              word-break: break-word;
+            }
+            .bridge7-main .left {
+              text-align: left;
+              vertical-align: top;
+            }
+            .bridge7-main .row-mid td {
+              height: 13mm;
+              font-size: 13px;
+            }
+            .bridge7-main .row-drawing-1 td {
+              height: 56mm;
+            }
+            .bridge7-main .row-drawing-2 td {
+              height: 50mm;
+            }
+            .bridge7-main .row-sign td {
+              height: 10mm;
+              font-size: 14px;
+            }
+            .bridge7-main .row-opinion td {
+              height: 33mm;
+              font-size: 14px;
+            }
+            .bridge7-main .fill-area {
+              min-height: 100%;
+              white-space: pre-wrap;
+            }
+            .bridge7-main .row-drawing-1 .fill-area {
+              height: 47mm;
+            }
+            .bridge7-main .row-drawing-2 .fill-area {
+              height: 41mm;
+            }
+            .bridge7-opinion-box {
+              position: relative;
+              height: 100%;
+              text-align: left;
+              padding-top: 2px;
+            }
+            .bridge7-main .row-opinion .bridge7-opinion-box {
+              height: 30mm;
+            }
+            .bridge7-sign-date {
+              position: absolute;
+              right: 0;
+              bottom: 0;
+              white-space: nowrap;
+            }
+          </style>
+
+          <div class="bridge7-title">
+            <div class="line1"><span t-esc="o.engineering_name or o.pile_id.project_id.name or '眉县至太白高速公路'"/></div>
+            <div class="line2">桩 基 成 孔 检 查 表</div>
+          </div>
+
+          <table class="bridge7-header">
+            <tr>
+              <td colspan="4">施工单位：<span t-esc="o.construction_unit or ''"/></td>
+              <td colspan="4">监理单位：<span t-esc="o.supervision_unit or ''"/></td>
+            </tr>
+            <tr>
+              <td colspan="2">合同段：<span t-esc="o.contract_no or ''"/></td>
+              <td colspan="2">起讫桩号：<span t-esc="o.pile_position or o.pile_id.name or ''"/></td>
+              <td colspan="3" class="right">
+                <t t-if="o.page_info">
+                  <span t-esc="o.page_info"/>
+                </t>
+                <t t-else="">第&#160;<span class="page"/>&#160;页&#160;&#160;共&#160;<span class="topage"/>&#160;页</t>
+              </td>
+              <td class="right">
+                <t t-if="not (o.page_info and '桥施7表' in o.page_info)">桥施7表</t>
+              </td>
+            </tr>
+          </table>
+
+          <table class="bridge7-main">
+            <colgroup>
+              <col style="width:16%"/>
+              <col style="width:17%"/>
+              <col style="width:16%"/>
+              <col style="width:17%"/>
+              <col style="width:16%"/>
+              <col style="width:18%"/>
+            </colgroup>
+            <tr class="row-mid">
+              <td>工程名称</td>
+              <td colspan="5"><span t-esc="o.engineering_name or o.pile_id.project_id.name or ''"/></td>
+            </tr>
+            <tr class="row-mid">
+              <td>桩&#160;&#160;&#160;&#160;位</td>
+              <td colspan="2"><span t-esc="o.pile_position or o.pile_id.name or ''"/></td>
+              <td>检查日期</td>
+              <td colspan="2"><span t-esc="o.check_date or ''"/></td>
+            </tr>
+            <tr class="row-mid">
+              <td><div>设计桩尖高程</div><div>（m）</div></td>
+              <td><span t-esc="o.pile_id.design_tip_elevation"/></td>
+              <td><div>护筒顶高程</div><div>（m）</div></td>
+              <td></td>
+              <td><div>应钻深度</div><div>（m）</div></td>
+              <td><span t-esc="o.design_depth"/></td>
+            </tr>
+            <tr class="row-mid">
+              <td><div>孔底实际高程</div><div>（m）</div></td>
+              <td></td>
+              <td><div>设计桩径</div><div>（m）</div></td>
+              <td><span t-esc="o.design_diameter"/></td>
+              <td><div>成孔直径</div><div>（m）</div></td>
+              <td><span t-esc="o.actual_diameter"/></td>
+            </tr>
+            <tr class="row-mid">
+              <td><div>实钻深度</div><div>（m）</div></td>
+              <td><span t-esc="o.actual_drilled_depth"/></td>
+              <td><div>倾&#160;&#160;斜&#160;&#160;度</div><div>（mm）</div></td>
+              <td><span t-esc="o.inclination_permille"/></td>
+              <td>测设工具</td>
+              <td></td>
+            </tr>
+            <tr class="row-drawing-1">
+              <td colspan="3" class="left">
+                检孔器说明
+                <div class="fill-area" style="margin-top: 6px;">
+                  <t t-if="o.hole_detector_passed">检孔器检测通过。</t>
+                  <t t-if="not o.hole_detector_passed">检孔器检测未通过。</t>
+                </div>
+              </td>
+              <td colspan="3" rowspan="2" class="left">成孔及地质示意图：</td>
+            </tr>
+            <tr class="row-drawing-2">
+              <td colspan="3" class="left">
+                检孔器检测情况：
+                <div class="fill-area" style="margin-top: 6px;">
+                  <span t-esc="o.evidence_refs or ''"/>
+                </div>
+              </td>
+            </tr>
+            <tr class="row-sign">
+              <td>检查</td>
+              <td><span t-esc="o.inspector_signature_ref or ''"/></td>
+              <td>记录</td>
+              <td></td>
+              <td>复核</td>
+              <td><span t-esc="o.reviewer_signature_ref or ''"/></td>
+            </tr>
+            <tr class="row-opinion">
+              <td colspan="6" class="left">
+                <div class="bridge7-opinion-box">
+                  施工单位意见：
+                  <div class="bridge7-sign-date">签名：&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;年&#160;&#160;&#160;&#160;月&#160;&#160;&#160;&#160;日</div>
+                </div>
+              </td>
+            </tr>
+            <tr class="row-opinion">
+              <td colspan="6" class="left">
+                <div class="bridge7-opinion-box">
+                  监理工程师意见：
+                  <div class="bridge7-sign-date">签名：&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;年&#160;&#160;&#160;&#160;月&#160;&#160;&#160;&#160;日</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </t>
+    </t>
+  </template>
+
+  <template id="report_bridge_table13">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+        <t t-call="web.external_layout">
+          <div class="page">
+            <h2 style="text-align:center; margin-bottom: 8px;">桥施13表 桩基成桩检查表</h2>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td><strong>桩号</strong></td>
+                  <td><span t-esc="o.pile_id.name or ''"/></td>
+                  <td><strong>检查日期</strong></td>
+                  <td><span t-esc="o.check_date or ''"/></td>
+                </tr>
+                <tr>
+                  <td><strong>项目</strong></td>
+                  <td><span t-esc="o.pile_id.project_id.name or ''"/></td>
+                  <td><strong>桩位引用</strong></td>
+                  <td><span t-esc="o.pile_ref or ''"/></td>
+                </tr>
+                <tr>
+                  <td><strong>行程ID</strong></td>
+                  <td><span t-esc="o.core_trip_id or ''"/></td>
+                  <td><strong>判定结果</strong></td>
+                  <td><span t-esc="o.core_verdict or ''"/></td>
+                </tr>
+                <tr>
+                  <td><strong>PDF引用</strong></td>
+                  <td colspan="3"><span t-esc="o.core_pdf_ref or ''"/></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin-top: 12px;">测量数据</h4>
+            <table class="table table-sm" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td>设计桩顶高程</td>
+                  <td><span t-esc="o.design_top_elevation"/></td>
+                  <td>实测桩顶高程</td>
+                  <td><span t-esc="o.actual_top_elevation"/></td>
+                </tr>
+                <tr>
+                  <td>设计X坐标</td>
+                  <td><span t-esc="o.design_x"/></td>
+                  <td>实测X坐标</td>
+                  <td><span t-esc="o.actual_x"/></td>
+                </tr>
+                <tr>
+                  <td>设计Y坐标</td>
+                  <td><span t-esc="o.design_y"/></td>
+                  <td>实测Y坐标</td>
+                  <td><span t-esc="o.actual_y"/></td>
+                </tr>
+                <tr>
+                  <td>设计强度</td>
+                  <td><span t-esc="o.design_strength"/></td>
+                  <td>实测强度</td>
+                  <td><span t-esc="o.actual_strength"/></td>
+                </tr>
+                <tr>
+                  <td>完整性等级</td>
+                  <td colspan="3"><span t-esc="o.integrity_class or ''"/></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin-top: 12px;">佐证与签名</h4>
+            <p><strong>佐证材料：</strong> <span t-esc="o.evidence_refs or ''"/></p>
+            <p><strong>检查签名：</strong> <span t-esc="o.inspector_signature_ref or ''"/></p>
+            <p><strong>监理签名：</strong> <span t-esc="o.supervisor_signature_ref or ''"/></p>
+          </div>
+        </t>
+      </t>
+    </t>
+  </template>
+</odoo>

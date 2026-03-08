@@ -1,0 +1,63 @@
+<odoo>
+  <record id="view_coordos_project_import_wizard_form" model="ir.ui.view">
+    <field name="name">coordos.project.import.wizard.form</field>
+    <field name="model">coordos.project.import.wizard</field>
+    <field name="arch" type="xml">
+      <form string="导入项目文件">
+        <sheet>
+          <group string="基础信息">
+            <field name="project_name"/>
+            <field name="project_code"/>
+            <field name="project_usi"/>
+            <field name="template_id"/>
+            <field name="generate_spu_drafts"/>
+            <field name="register_spu_to_core" invisible="generate_spu_drafts == False"/>
+            <field name="create_initial_trip_registration"/>
+            <field name="create_trip_chain_registrations"/>
+          </group>
+          <group string="上传文件">
+            <field name="bid_list_file" filename="bid_list_filename"/>
+            <field name="bid_list_filename" invisible="1"/>
+            <field name="drawings_file" filename="drawings_filename"/>
+            <field name="drawings_filename" invisible="1"/>
+            <field name="contract_file" filename="contract_filename"/>
+            <field name="contract_filename" invisible="1"/>
+          </group>
+          <group string="解析预览">
+            <field name="parsed_data" nolabel="1"/>
+          </group>
+          <group string="图纸解析">
+            <field name="drawings_specs_json" nolabel="1"/>
+          </group>
+          <group string="合同解析">
+            <field name="contract_terms_json" nolabel="1"/>
+          </group>
+          <group string="项目树生成载荷">
+            <field name="import_payload_json" nolabel="1"/>
+          </group>
+          <group string="生成结果">
+            <field name="generated_summary" nolabel="1"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_confirm_import" type="object" string="确认导入并生成" class="btn-primary"/>
+          <button string="取消" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_project_import_wizard" model="ir.actions.act_window">
+    <field name="name">导入项目文件</field>
+    <field name="res_model">coordos.project.import.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <menuitem
+      id="menu_coordos_project_import"
+      name="导入项目文件"
+      parent="menu_coordos_project"
+      action="action_coordos_project_import_wizard"
+      sequence="15"/>
+</odoo>

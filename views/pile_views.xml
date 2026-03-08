@@ -1,0 +1,392 @@
+﻿<odoo>
+  <record id="view_bridge_pile_tree" model="ir.ui.view">
+    <field name="name">bridge.pile.tree</field>
+    <field name="model">bridge.pile</field>
+    <field name="arch" type="xml">
+      <tree string="桩基">
+        <field name="name"/>
+        <field name="project_id"/>
+        <field name="project_node_id"/>
+        <field name="spu_id"/>
+        <field name="hole_status"/>
+        <field name="table7_verdict"/>
+        <field name="table13_verdict"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_bridge_pile_form" model="ir.ui.view">
+    <field name="name">bridge.pile.form</field>
+    <field name="model">bridge.pile</field>
+    <field name="arch" type="xml">
+      <form string="桩基">
+        <header>
+          <button name="action_open_table_upload_wizard" type="object" string="上传桥施表智能解析" class="btn-primary"/>
+          <button name="action_open_hole_inspection_wizard" type="object" string="提交桥施7" class="btn-primary"/>
+          <button name="run_final_inspection" type="object" string="提交桥施13" class="btn-secondary"/>
+          <button name="action_refresh_table7_result" type="object" string="刷新桥施7结果" class="btn-secondary"/>
+          <button name="action_refresh_table13_result" type="object" string="刷新桥施13结果" class="btn-secondary"/>
+          <button name="action_open_table7_pdf" type="object" string="打开桥施7报表PDF" class="btn-secondary" invisible="not table7_pdf_ref"/>
+          <button name="action_open_table13_pdf" type="object" string="打开桥施13报表PDF" class="btn-secondary" invisible="not table13_pdf_ref"/>
+          <button name="action_view_nonconformance" type="object" string="不合格记录" class="btn-secondary"/>
+        </header>
+        <sheet>
+          <group string="基础信息">
+            <field name="name"/>
+            <field name="project_id"/>
+            <field name="project_node_id"/>
+            <field name="spu_id"/>
+          </group>
+          <group string="设计值（用于预填）">
+            <field name="design_tip_elevation"/>
+            <field name="design_diameter"/>
+            <field name="design_depth"/>
+          </group>
+          <group string="桥施7结果（/bridge/pile/hole-inspection/submit）">
+            <field name="hole_status" readonly="1"/>
+            <field name="table7_trip_id" readonly="1"/>
+            <field name="table7_verdict" readonly="1"/>
+            <field name="table7_pdf_ref" readonly="1"/>
+            <field name="table7_checked_at" readonly="1"/>
+          </group>
+          <group string="桥施13结果（/bridge/pile/final-inspection/submit）">
+            <field name="table13_trip_id" readonly="1"/>
+            <field name="table13_verdict" readonly="1"/>
+            <field name="table13_pdf_ref" readonly="1"/>
+            <field name="table13_checked_at" readonly="1"/>
+          </group>
+          <group string="其他">
+            <field name="latest_inspection_id" readonly="1"/>
+            <field name="nonconformance_count" readonly="1"/>
+          </group>
+          <notebook>
+            <page string="桥施7记录">
+              <field name="inspection_ids" readonly="1">
+                <tree>
+                  <field name="name"/>
+                  <field name="check_date"/>
+                  <field name="pile_ref"/>
+                  <field name="core_trip_id"/>
+                  <field name="core_verdict"/>
+                  <field name="core_pdf_ref"/>
+                </tree>
+              </field>
+            </page>
+            <page string="桥施13记录">
+              <field name="final_inspection_ids" readonly="1">
+                <tree>
+                  <field name="name"/>
+                  <field name="check_date"/>
+                  <field name="pile_ref"/>
+                  <field name="core_trip_id"/>
+                  <field name="core_verdict"/>
+                  <field name="core_pdf_ref"/>
+                </tree>
+              </field>
+            </page>
+            <page string="桥施7结果JSON">
+              <field name="table7_result_json" readonly="1" nolabel="1"/>
+            </page>
+            <page string="桥施13结果JSON">
+              <field name="table13_result_json" readonly="1" nolabel="1"/>
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_bridge_pile" model="ir.actions.act_window">
+    <field name="name">桩基</field>
+    <field name="res_model">bridge.pile</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_bridge_pile_hole_inspection_tree" model="ir.ui.view">
+    <field name="name">bridge.pile.hole.inspection.tree</field>
+    <field name="model">bridge.pile.hole.inspection</field>
+    <field name="arch" type="xml">
+      <tree string="桥施7记录" decoration-warning="not core_trip_id">
+        <field name="name"/>
+        <field name="pile_id"/>
+        <field name="check_date"/>
+        <field name="core_trip_id"/>
+        <field name="core_verdict"/>
+        <field name="core_pdf_ref"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_bridge_pile_hole_inspection_form" model="ir.ui.view">
+    <field name="name">bridge.pile.hole.inspection.form</field>
+    <field name="model">bridge.pile.hole.inspection</field>
+    <field name="arch" type="xml">
+      <form string="桥施7记录">
+        <header>
+          <button name="action_submit_to_core" type="object" string="提交并生成PDF" class="btn-primary"/>
+          <button name="action_print_bridge_table7" type="object" string="打印桥施7表" class="btn-secondary"/>
+          <button name="action_open_core_pdf" type="object" string="打开原始PDF" class="btn-secondary" invisible="not core_pdf_ref"/>
+          <button name="action_refresh_from_core" type="object" string="按行程ID刷新" class="btn-secondary" invisible="not core_trip_id"/>
+        </header>
+        <sheet>
+          <group string="基础">
+            <field name="name" readonly="1"/>
+            <field name="pile_id"/>
+            <field name="pile_ref"/>
+            <field name="check_date"/>
+          </group>
+          <group string="自动补全信息（来自USI）">
+            <field name="engineering_name"/>
+            <field name="construction_unit"/>
+            <field name="supervision_unit"/>
+            <field name="contract_no"/>
+            <field name="bridge_name"/>
+            <field name="pier_name"/>
+            <field name="pile_position"/>
+            <field name="usi_path" readonly="1"/>
+            <field name="usi_full_path" readonly="1"/>
+            <field name="page_info" readonly="1"/>
+          </group>
+          <group string="系统回传结果">
+            <field name="core_trip_id" readonly="1"/>
+            <field name="core_verdict" readonly="1"/>
+            <field name="core_pdf_ref" readonly="1"/>
+          </group>
+          <group string="测量数据（桥施7）">
+            <field name="design_depth"/>
+            <field name="actual_drilled_depth"/>
+            <field name="design_diameter"/>
+            <field name="actual_diameter"/>
+            <field name="inclination_permille"/>
+            <field name="hole_detector_passed"/>
+          </group>
+          <group string="佐证与签名">
+            <field name="evidence_refs"/>
+            <field name="inspector_signature_ref"/>
+            <field name="reviewer_signature_ref"/>
+          </group>
+          <group string="结果JSON">
+            <field name="core_submit_result_json" readonly="1"/>
+            <field name="core_query_result_json" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_bridge_pile_hole_inspection" model="ir.actions.act_window">
+    <field name="name">桥施7记录</field>
+    <field name="res_model">bridge.pile.hole.inspection</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_bridge_pile_final_inspection_tree" model="ir.ui.view">
+    <field name="name">bridge.pile.final.inspection.tree</field>
+    <field name="model">bridge.pile.final.inspection</field>
+    <field name="arch" type="xml">
+      <tree string="桥施13记录">
+        <field name="name"/>
+        <field name="pile_id"/>
+        <field name="check_date"/>
+        <field name="core_trip_id"/>
+        <field name="core_verdict"/>
+        <field name="core_pdf_ref"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_bridge_pile_final_inspection_form" model="ir.ui.view">
+    <field name="name">bridge.pile.final.inspection.form</field>
+    <field name="model">bridge.pile.final.inspection</field>
+    <field name="arch" type="xml">
+      <form string="桥施13记录">
+        <header>
+          <button name="action_refresh_from_core" type="object" string="按行程ID刷新" class="btn-primary"/>
+        </header>
+        <sheet>
+          <group string="基础">
+            <field name="name" readonly="1"/>
+            <field name="pile_id"/>
+            <field name="pile_ref"/>
+            <field name="check_date"/>
+          </group>
+          <group string="系统回传结果">
+            <field name="core_trip_id" readonly="1"/>
+            <field name="core_verdict" readonly="1"/>
+            <field name="core_pdf_ref" readonly="1"/>
+          </group>
+          <group string="测量数据（桥施13）">
+            <field name="design_top_elevation"/>
+            <field name="actual_top_elevation"/>
+            <field name="design_x"/>
+            <field name="actual_x"/>
+            <field name="design_y"/>
+            <field name="actual_y"/>
+            <field name="design_strength"/>
+            <field name="actual_strength"/>
+            <field name="integrity_class"/>
+          </group>
+          <group string="佐证与签名">
+            <field name="evidence_refs"/>
+            <field name="inspector_signature_ref"/>
+            <field name="supervisor_signature_ref"/>
+          </group>
+          <group string="结果JSON">
+            <field name="core_submit_result_json" readonly="1"/>
+            <field name="core_query_result_json" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_bridge_pile_final_inspection" model="ir.actions.act_window">
+    <field name="name">桥施13记录</field>
+    <field name="res_model">bridge.pile.final.inspection</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_bridge_pile_nonconformance_tree" model="ir.ui.view">
+    <field name="name">bridge.pile.nonconformance.tree</field>
+    <field name="model">bridge.pile.nonconformance</field>
+    <field name="arch" type="xml">
+      <tree string="不合格记录">
+        <field name="name"/>
+        <field name="pile_id"/>
+        <field name="table_type"/>
+        <field name="inspection7_id"/>
+        <field name="inspection13_id"/>
+        <field name="status"/>
+        <field name="owner_id"/>
+        <field name="closed_at"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_bridge_pile_nonconformance_form" model="ir.ui.view">
+    <field name="name">bridge.pile.nonconformance.form</field>
+    <field name="model">bridge.pile.nonconformance</field>
+    <field name="arch" type="xml">
+      <form string="不合格记录">
+        <header>
+          <button name="action_mark_closed" type="object" string="关闭" class="btn-primary" invisible="status == 'closed'"/>
+          <field name="status" widget="statusbar" statusbar_visible="open,closed"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="pile_id"/>
+            <field name="table_type"/>
+            <field name="inspection7_id"/>
+            <field name="inspection13_id"/>
+            <field name="owner_id"/>
+            <field name="closed_at" readonly="1"/>
+          </group>
+          <group string="不合格原因">
+            <field name="reason" nolabel="1"/>
+          </group>
+          <group string="整改措施">
+            <field name="corrective_action" nolabel="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_bridge_pile_nonconformance" model="ir.actions.act_window">
+    <field name="name">不合格记录</field>
+    <field name="res_model">bridge.pile.nonconformance</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_pile_hole_inspection_wizard_form" model="ir.ui.view">
+    <field name="name">pile.hole.inspection.wizard.form</field>
+    <field name="model">pile.hole.inspection.wizard</field>
+    <field name="arch" type="xml">
+      <form string="桥施7提交">
+        <sheet>
+          <group string="基础">
+            <field name="pile_id"/>
+            <field name="pile_ref" readonly="1"/>
+            <field name="check_date"/>
+          </group>
+          <group string="自动补全信息（来自USI）">
+            <field name="engineering_name" readonly="1"/>
+            <field name="construction_unit" readonly="1"/>
+            <field name="supervision_unit" readonly="1"/>
+            <field name="contract_no" readonly="1"/>
+            <field name="bridge_name" readonly="1"/>
+            <field name="pier_name" readonly="1"/>
+            <field name="pile_position" readonly="1"/>
+            <field name="usi_path" readonly="1"/>
+            <field name="usi_full_path" readonly="1"/>
+            <field name="page_info" readonly="1"/>
+          </group>
+          <group string="测量数据（严格按API）">
+            <field name="design_depth" options="{'step': 0.01}"/>
+            <field name="actual_drilled_depth" options="{'step': 0.01}"/>
+            <field name="design_diameter" options="{'step': 0.01}"/>
+            <field name="actual_diameter" options="{'step': 0.01}"/>
+            <field name="inclination_permille" options="{'step': 0.01}"/>
+            <field name="hole_detector_passed"/>
+          </group>
+          <group string="现场证据（手机友好）">
+            <field name="site_photo" widget="image" filename="site_photo_filename" options="{'preview_image': 'site_photo', 'size': [0, 220]}"/>
+            <field name="inspector_signature_draw" widget="signature"/>
+            <field name="reviewer_signature_draw" widget="signature"/>
+          </group>
+          <group string="佐证与签名（严格按API）">
+            <field name="evidence_refs"/>
+            <field name="inspector_signature_ref"/>
+            <field name="reviewer_signature_ref"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_submit" type="object" string="提交桥施7（调用API）" class="btn-primary"/>
+          <button string="取消" special="cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_pile_final_inspection_wizard_form" model="ir.ui.view">
+    <field name="name">pile.final.inspection.wizard.form</field>
+    <field name="model">pile.final.inspection.wizard</field>
+    <field name="arch" type="xml">
+      <form string="桥施13提交">
+        <sheet>
+          <group string="基础">
+            <field name="pile_id"/>
+            <field name="pile_ref" readonly="1"/>
+            <field name="check_date"/>
+          </group>
+          <group string="测量数据（严格按API）">
+            <field name="design_top_elevation"/>
+            <field name="actual_top_elevation"/>
+            <field name="design_x"/>
+            <field name="actual_x"/>
+            <field name="design_y"/>
+            <field name="actual_y"/>
+            <field name="design_strength"/>
+            <field name="actual_strength"/>
+            <field name="integrity_class"/>
+          </group>
+          <group string="佐证与签名（严格按API）">
+            <field name="evidence_refs"/>
+            <field name="inspector_signature_ref"/>
+            <field name="supervisor_signature_ref"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_submit" type="object" string="提交桥施13（调用API）" class="btn-primary"/>
+          <button string="取消" special="cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <menuitem id="menu_bridge_pile" name="桩基" parent="menu_coordos_project" action="action_bridge_pile" sequence="30"/>
+  <menuitem id="menu_bridge_pile_hole_inspection" name="桥施7记录" parent="menu_bridge_pile" action="action_bridge_pile_hole_inspection" sequence="10"/>
+  <menuitem id="menu_bridge_pile_final_inspection" name="桥施13记录" parent="menu_bridge_pile" action="action_bridge_pile_final_inspection" sequence="20"/>
+  <menuitem id="menu_bridge_pile_nonconformance" name="不合格记录" parent="menu_bridge_pile" action="action_bridge_pile_nonconformance" sequence="30"/>
+</odoo>

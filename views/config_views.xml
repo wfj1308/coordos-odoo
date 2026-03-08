@@ -1,0 +1,229 @@
+<odoo>
+  <record id="view_coordos_trip_template_config_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.template.config.tree</field>
+    <field name="model">coordos.trip.template.config</field>
+    <field name="arch" type="xml">
+      <tree string="行程模板配置">
+        <field name="active"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="item_code"/>
+        <field name="template_id"/>
+        <field name="namespace_prefix"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_coordos_trip_template_config_form" model="ir.ui.view">
+    <field name="name">coordos.trip.template.config.form</field>
+    <field name="model">coordos.trip.template.config</field>
+    <field name="arch" type="xml">
+      <form string="行程模板配置">
+        <sheet>
+          <group>
+            <field name="active"/>
+            <field name="name"/>
+            <field name="code"/>
+            <field name="item_code"/>
+            <field name="template_id"/>
+            <field name="namespace_prefix"/>
+          </group>
+          <group string="输入字段Schema">
+            <field name="input_schema_json" nolabel="1"/>
+          </group>
+          <group string="默认输入JSON">
+            <field name="default_input_json" nolabel="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_trip_template_config" model="ir.actions.act_window">
+    <field name="name">模板配置</field>
+    <field name="res_model">coordos.trip.template.config</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_coordos_namespace_policy_tree" model="ir.ui.view">
+    <field name="name">coordos.namespace.policy.tree</field>
+    <field name="model">coordos.namespace.policy</field>
+    <field name="arch" type="xml">
+      <tree string="命名空间策略">
+        <field name="active"/>
+        <field name="name"/>
+        <field name="namespace_prefix"/>
+        <field name="require_approval"/>
+        <field name="trip_name_pattern"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_coordos_namespace_policy_form" model="ir.ui.view">
+    <field name="name">coordos.namespace.policy.form</field>
+    <field name="model">coordos.namespace.policy</field>
+    <field name="arch" type="xml">
+      <form string="命名空间策略">
+        <sheet>
+          <group>
+            <field name="active"/>
+            <field name="name"/>
+            <field name="namespace_prefix"/>
+            <field name="require_approval"/>
+            <field name="trip_name_pattern"/>
+            <field name="default_operator_spu_id"/>
+            <field name="allowed_group_ids" widget="many2many_tags"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_namespace_policy" model="ir.actions.act_window">
+    <field name="name">命名空间策略</field>
+    <field name="res_model">coordos.namespace.policy</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_coordos_parser_profile_tree" model="ir.ui.view">
+    <field name="name">coordos.parser.profile.tree</field>
+    <field name="model">coordos.parser.profile</field>
+    <field name="arch" type="xml">
+      <tree string="解析器配置">
+        <field name="active"/>
+        <field name="name"/>
+        <field name="parser_kind"/>
+        <field name="mode"/>
+        <field name="endpoint"/>
+        <field name="model_name"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_coordos_parser_profile_form" model="ir.ui.view">
+    <field name="name">coordos.parser.profile.form</field>
+    <field name="model">coordos.parser.profile</field>
+    <field name="arch" type="xml">
+      <form string="解析器配置">
+        <sheet>
+          <group>
+            <field name="active"/>
+            <field name="name"/>
+            <field name="parser_kind"/>
+            <field name="mode"/>
+            <field name="endpoint" invisible="mode != 'openai_compatible'"/>
+            <field name="model_name" invisible="mode != 'openai_compatible'"/>
+            <field name="api_key" password="True" invisible="mode != 'openai_compatible'"/>
+            <field name="timeout_sec"/>
+          </group>
+          <group string="系统提示词">
+            <field name="system_prompt" nolabel="1"/>
+          </group>
+          <group string="输出Schema">
+            <field name="output_schema_json" nolabel="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_parser_profile" model="ir.actions.act_window">
+    <field name="name">解析器配置</field>
+    <field name="res_model">coordos.parser.profile</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_coordos_trip_registration_tree" model="ir.ui.view">
+    <field name="name">coordos.trip.registration.tree</field>
+    <field name="model">coordos.trip.registration</field>
+    <field name="arch" type="xml">
+      <tree string="行程注册审批">
+        <field name="name"/>
+        <field name="state"/>
+        <field name="requested_by"/>
+        <field name="org_code"/>
+        <field name="project_node_id"/>
+        <field name="trip_template"/>
+        <field name="core_trip_id"/>
+        <field name="result_status"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_coordos_trip_registration_form" model="ir.ui.view">
+    <field name="name">coordos.trip.registration.form</field>
+    <field name="model">coordos.trip.registration</field>
+    <field name="arch" type="xml">
+      <form string="行程注册审批">
+        <header>
+          <button name="action_approve" type="object" string="审批通过" class="btn-primary" invisible="state != 'pending'"/>
+          <button name="action_reject" type="object" string="驳回" class="btn-secondary" invisible="state not in ('pending', 'approved')"/>
+          <button name="action_register" type="object" string="执行注册" class="btn-primary" invisible="state not in ('approved', 'pending')"/>
+          <field name="state" widget="statusbar" statusbar_visible="pending,approved,rejected,registered"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="requested_by" readonly="1"/>
+            <field name="approved_by" readonly="1"/>
+            <field name="approved_at" readonly="1"/>
+            <field name="org_code"/>
+            <field name="project_node_id"/>
+            <field name="trip_template"/>
+            <field name="operator_spu_id"/>
+            <field name="trip_shadow_id"/>
+            <field name="core_trip_id" readonly="1"/>
+            <field name="result_status" readonly="1"/>
+          </group>
+          <group string="启动载荷JSON">
+            <field name="payload_json" nolabel="1"/>
+          </group>
+          <group string="审批意见">
+            <field name="reason" nolabel="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_trip_registration" model="ir.actions.act_window">
+    <field name="name">注册审批</field>
+    <field name="res_model">coordos.trip.registration</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem
+      id="menu_coordos_config_root"
+      name="配置"
+      parent="menu_coordos_root"
+      sequence="90"
+      groups="coordos_shell.group_coordos_company_admin"/>
+  <menuitem
+      id="menu_coordos_trip_template_config"
+      name="模板配置"
+      parent="menu_coordos_config_root"
+      action="action_coordos_trip_template_config"
+      sequence="10"
+      groups="coordos_shell.group_coordos_company_admin"/>
+  <menuitem
+      id="menu_coordos_namespace_policy"
+      name="命名空间策略"
+      parent="menu_coordos_config_root"
+      action="action_coordos_namespace_policy"
+      sequence="20"
+      groups="coordos_shell.group_coordos_company_admin"/>
+  <menuitem
+      id="menu_coordos_parser_profile"
+      name="解析器配置"
+      parent="menu_coordos_config_root"
+      action="action_coordos_parser_profile"
+      sequence="30"
+      groups="coordos_shell.group_coordos_company_admin"/>
+  <menuitem
+      id="menu_coordos_trip_registration"
+      name="注册审批"
+      parent="menu_coordos_root"
+      action="action_coordos_trip_registration"
+      sequence="35"
+      groups="coordos_shell.group_coordos_project_manager,coordos_shell.group_coordos_company_admin"/>
+</odoo>

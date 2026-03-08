@@ -1,0 +1,25 @@
+<odoo noupdate="1">
+  <record id="coordos_parser_profile_bid_local" model="coordos.parser.profile">
+    <field name="active">1</field>
+    <field name="name">清单解析-本地规则</field>
+    <field name="parser_kind">bid</field>
+    <field name="mode">local</field>
+    <field name="timeout_sec">20</field>
+  </record>
+
+  <record id="coordos_parser_profile_drawing_local" model="coordos.parser.profile">
+    <field name="active">1</field>
+    <field name="name">图纸解析-本地规则</field>
+    <field name="parser_kind">drawing</field>
+    <field name="mode">local</field>
+    <field name="timeout_sec">20</field>
+  </record>
+
+  <record id="coordos_parser_profile_contract_local" model="coordos.parser.profile">
+    <field name="active">1</field>
+    <field name="name">合同解析-本地规则</field>
+    <field name="parser_kind">contract</field>
+    <field name="mode">local</field>
+    <field name="timeout_sec">20</field>
+  </record>
+</odoo>

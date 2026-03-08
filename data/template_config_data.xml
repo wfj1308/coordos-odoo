@@ -1,0 +1,28 @@
+<odoo noupdate="1">
+  <record id="coordos_trip_template_pile" model="coordos.trip.template.config">
+    <field name="active">1</field>
+    <field name="name">桩基施工</field>
+    <field name="code">pile_construction</field>
+    <field name="item_code">404-1</field>
+    <field name="default_input_json">{"diameter_mm": 1500, "depth_m": 32, "concrete_grade": "C40"}</field>
+    <field name="input_schema_json">{"fields": [{"key": "diameter_mm", "label": "桩径(mm)", "type": "integer", "default": 1500}, {"key": "depth_m", "label": "桩深(m)", "type": "number", "default": 32}, {"key": "concrete_grade", "label": "混凝土标号", "type": "string", "default": "C40"}]}</field>
+  </record>
+
+  <record id="coordos_trip_template_earthwork" model="coordos.trip.template.config">
+    <field name="active">1</field>
+    <field name="name">土方开挖</field>
+    <field name="code">earthwork_excavation</field>
+    <field name="item_code">602-1</field>
+    <field name="default_input_json">{"cut_volume_m3": 1000, "section": "K100+200-K100+800", "soil_class": "III"}</field>
+    <field name="input_schema_json">{"fields": [{"key": "cut_volume_m3", "label": "开挖方量(m3)", "type": "number", "default": 1000}, {"key": "section", "label": "施工区段", "type": "string", "default": "K100+200-K100+800"}, {"key": "soil_class", "label": "土质类别", "type": "string", "default": "III"}]}</field>
+  </record>
+
+  <record id="coordos_trip_template_rebar" model="coordos.trip.template.config">
+    <field name="active">1</field>
+    <field name="name">钢筋绑扎</field>
+    <field name="code">rebar_binding</field>
+    <field name="item_code">403-1-2</field>
+    <field name="default_input_json">{"bar_type": "HRB400", "weight_t": 8.2, "spec": "Φ25"}</field>
+    <field name="input_schema_json">{"fields": [{"key": "bar_type", "label": "钢筋类型", "type": "string", "default": "HRB400"}, {"key": "weight_t", "label": "重量(t)", "type": "number", "default": 8.2}, {"key": "spec", "label": "规格", "type": "string", "default": "Φ25"}]}</field>
+  </record>
+</odoo>

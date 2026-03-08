@@ -1,0 +1,36 @@
+<odoo>
+  <record id="view_coordos_qa_wizard_form" model="ir.ui.view">
+    <field name="name">coordos.qa.wizard.form</field>
+    <field name="model">coordos.qa.wizard</field>
+    <field name="arch" type="xml">
+      <form string="智能问答">
+        <sheet>
+          <group>
+            <field name="project_id"/>
+            <field name="trip_id"/>
+            <field name="question" placeholder="例如：3号墩质量状态如何？最近证据有哪些？"/>
+          </group>
+          <group string="回答">
+            <field name="answer" nolabel="1" readonly="1"/>
+          </group>
+          <group string="追溯依据">
+            <field name="evidence_refs" nolabel="1" readonly="1"/>
+          </group>
+        </sheet>
+        <footer>
+          <button name="action_ask" type="object" string="提问" class="btn-primary"/>
+          <button string="关闭" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_qa_wizard" model="ir.actions.act_window">
+    <field name="name">智能问答</field>
+    <field name="res_model">coordos.qa.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <menuitem id="menu_coordos_qa" name="智能问答" parent="menu_coordos_root" action="action_coordos_qa_wizard" sequence="80"/>
+</odoo>

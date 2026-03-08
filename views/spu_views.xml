@@ -1,0 +1,51 @@
+﻿<odoo>
+  <record id="view_spu_tree" model="ir.ui.view">
+    <field name="name">coordos.spu.tree</field>
+    <field name="model">coordos.spu</field>
+    <field name="arch" type="xml">
+      <tree string="SPU列表">
+        <field name="name" string="名称"/>
+        <field name="category" string="类别"/>
+        <field name="code" string="编码"/>
+        <field name="project_id" string="项目"/>
+        <field name="x_graph_node_id" string="图谱节点"/>
+        <field name="x_status" string="状态"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_spu_form" model="ir.ui.view">
+    <field name="name">coordos.spu.form</field>
+    <field name="model">coordos.spu</field>
+    <field name="arch" type="xml">
+      <form string="SPU详情">
+        <header>
+          <button name="action_view_graph" type="object" string="查看图谱" class="btn-secondary"/>
+          <button name="action_view_finance" type="object" string="查看财务" class="btn-secondary"/>
+        </header>
+        <sheet>
+          <group string="基础信息">
+            <field name="name"/>
+            <field name="category"/>
+            <field name="code"/>
+            <field name="project_id"/>
+          </group>
+          <group string="CoordOS 信息">
+            <field name="x_core_usi" readonly="1"/>
+            <field name="x_utxo_id" readonly="1"/>
+            <field name="x_graph_node_id" readonly="1"/>
+            <field name="x_status" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_spu" model="ir.actions.act_window">
+    <field name="name">SPU列表</field>
+    <field name="res_model">coordos.spu</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem id="menu_coordos_spu" name="SPU列表" parent="menu_coordos_root" action="action_coordos_spu" sequence="20"/>
+</odoo>

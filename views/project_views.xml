@@ -1,0 +1,92 @@
+﻿<odoo>
+  <record id="view_project_tree" model="ir.ui.view">
+    <field name="name">coordos.project.tree</field>
+    <field name="model">coordos.project</field>
+    <field name="arch" type="xml">
+      <tree string="项目树">
+        <field name="name"/>
+        <field name="code"/>
+        <field name="project_usi"/>
+        <field name="org_code"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_project_form" model="ir.ui.view">
+    <field name="name">coordos.project.form</field>
+    <field name="model">coordos.project</field>
+    <field name="arch" type="xml">
+      <form string="项目">
+        <header>
+          <button name="action_open_ai_qa" type="object" string="智能问答" class="btn-primary"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="code"/>
+            <field name="project_usi"/>
+            <field name="org_code"/>
+            <field name="contract_no"/>
+            <field name="construction_unit"/>
+            <field name="supervision_unit"/>
+            <field name="default_bridge_name"/>
+            <field name="default_pier_name"/>
+          </group>
+          <group string="自动生成产物">
+            <field name="x_generated_at" readonly="1"/>
+            <field name="x_quality_plan_json" readonly="1"/>
+            <field name="x_schedule_json" readonly="1"/>
+            <field name="x_budget_json" readonly="1"/>
+            <field name="x_risk_json" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_project" model="ir.actions.act_window">
+    <field name="name">项目</field>
+    <field name="res_model">coordos.project</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <record id="view_project_node_tree" model="ir.ui.view">
+    <field name="name">coordos.project.node.tree</field>
+    <field name="model">coordos.project.node</field>
+    <field name="arch" type="xml">
+      <tree string="项目节点">
+        <field name="name"/>
+        <field name="project_id"/>
+        <field name="node_id"/>
+        <field name="active"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_project_node_form" model="ir.ui.view">
+    <field name="name">coordos.project.node.form</field>
+    <field name="model">coordos.project.node</field>
+    <field name="arch" type="xml">
+      <form string="项目节点">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="project_id"/>
+            <field name="node_id"/>
+            <field name="active"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_coordos_project_node" model="ir.actions.act_window">
+    <field name="name">项目节点</field>
+    <field name="res_model">coordos.project.node</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem id="menu_coordos_root" name="CoordOS 平台" sequence="10"/>
+  <menuitem id="menu_coordos_project" name="项目" parent="menu_coordos_root" action="action_coordos_project" sequence="10"/>
+  <menuitem id="menu_coordos_project_node" name="项目节点" parent="menu_coordos_project" action="action_coordos_project_node" sequence="20"/>
+</odoo>
