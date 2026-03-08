@@ -1,7 +1,7 @@
 {
-    'name': 'CoordOS Shell',
+    'name': 'coordos-odoo',
     'version': '1.0',
-    'summary': 'CoordOS UI Shell for SPU / Trip',
+    'summary': 'CoordOS Odoo bridge/SPU/trip module',
     'author': 'CoordOS',
     'depends': ['base', 'web'],
     'data': [

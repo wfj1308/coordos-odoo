@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.odoo
-    image: coordos_shell_odoo:17-ocr
+    image: coordos-odoo:17-ocr
     ports:
       - "8069:8069"
     environment:
