@@ -12,6 +12,7 @@
         'data/template_config_data.xml',
         'data/parser_profile_data.xml',
         'data/quality_table_template_data.xml',
+        'data/quality_table_template_backfill.xml',
         'views/project_views.xml',
         'views/project_import_views.xml',
         'views/config_views.xml',

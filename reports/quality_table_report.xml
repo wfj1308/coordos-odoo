@@ -37,6 +37,12 @@
                   <td><span t-esc="o.quality_template_id.name if o.quality_template_id else ''"/></td>
                 </tr>
                 <tr>
+                  <td><strong>模板版本</strong></td>
+                  <td><span t-esc="o.quality_template_version or ''"/></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
                   <td><strong>桩位引用</strong></td>
                   <td><span t-esc="o.pile_ref or ''"/></td>
                   <td><strong>USI路径</strong></td>

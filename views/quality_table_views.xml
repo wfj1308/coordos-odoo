@@ -8,6 +8,7 @@
         <field name="table_title"/>
         <field name="table_type_code"/>
         <field name="quality_template_code"/>
+        <field name="quality_template_version"/>
         <field name="check_date"/>
         <field name="pile_ref"/>
         <field name="trip_shadow_id"/>
@@ -32,6 +33,7 @@
             <field name="table_type_code"/>
             <field name="quality_template_id"/>
             <field name="quality_template_code" readonly="1"/>
+            <field name="quality_template_version" readonly="1"/>
             <field name="source_file_name"/>
             <field name="source_attachment_id" readonly="1"/>
             <field name="trip_shadow_id" readonly="1"/>

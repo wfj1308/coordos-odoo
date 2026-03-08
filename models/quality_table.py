@@ -24,6 +24,7 @@ class CoordosQualityTableRecord(models.Model):
     table_type_code = fields.Char("表单类型编码", default="other")
     quality_template_id = fields.Many2one("coordos.quality.table.template", string="命中模板")
     quality_template_code = fields.Char("模板编码")
+    quality_template_version = fields.Integer("模板版本")
     source_file_name = fields.Char("源文件名")
     source_attachment_id = fields.Many2one("ir.attachment", string="源文件", readonly=True, copy=False)
     trip_shadow_id = fields.Many2one("coordos.trip.shadow", string="关联Trip", readonly=True, copy=False)

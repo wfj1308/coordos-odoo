@@ -23,6 +23,9 @@ access_coordos_parser_profile_user,coordos.parser.profile.user,model_coordos_par
 access_coordos_parser_profile_admin,coordos.parser.profile.admin,model_coordos_parser_profile,coordos_odoo.group_coordos_company_admin,1,1,1,1
 access_quality_table_template_user,coordos.quality.table.template.user,model_coordos_quality_table_template,base.group_user,1,0,0,0
 access_quality_table_template_admin,coordos.quality.table.template.admin,model_coordos_quality_table_template,coordos_odoo.group_coordos_company_admin,1,1,1,1
+access_quality_table_template_version_user,coordos.quality.table.template.version.user,model_coordos_quality_table_template_version,base.group_user,1,0,0,0
+access_quality_table_template_version_admin,coordos.quality.table.template.version.admin,model_coordos_quality_table_template_version,coordos_odoo.group_coordos_company_admin,1,1,1,1
+access_quality_table_template_import_wizard_user,quality.table.template.import.wizard.user,model_quality_table_template_import_wizard,coordos_odoo.group_coordos_company_admin,1,1,1,1
 access_bridge_pile_user,bridge.pile.user,model_bridge_pile,base.group_user,1,1,1,1
 access_bridge_pile_hole_inspection_user,bridge.pile.hole.inspection.user,model_bridge_pile_hole_inspection,base.group_user,1,1,1,1
 access_bridge_pile_final_inspection_user,bridge.pile.final.inspection.user,model_bridge_pile_final_inspection,base.group_user,1,1,1,1

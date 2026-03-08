@@ -737,12 +737,18 @@ class BridgeTableUploadWizard(models.TransientModel):
         table_title = parsed_payload.get("table_title") or self.file_name or self.photo_name or "通用质检表"
         template_id = parsed_payload.get("template_id") or (self.matched_template_id.id if self.matched_template_id else False)
         template_code = parsed_payload.get("template_code") or self.matched_template_code or ""
+        template_version = parsed_payload.get("template_version")
+        try:
+            template_version = int(template_version) if template_version not in (None, "") else 0
+        except Exception:
+            template_version = 0
         return self.env["coordos.quality.table.record"].create(
             {
                 "table_title": self._clean_text(table_title),
                 "table_type_code": self.resolved_table_type or self.table_type or "other",
                 "quality_template_id": template_id or False,
                 "quality_template_code": template_code,
+                "quality_template_version": template_version,
                 "source_file_name": self.file_name or self.photo_name or "",
                 "trip_shadow_id": trip_shadow.id if trip_shadow else False,
                 "pile_id": self.pile_id.id if self.pile_id else False,

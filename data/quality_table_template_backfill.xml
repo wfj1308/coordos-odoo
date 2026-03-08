@@ -1,0 +1,3 @@
+<odoo>
+  <function model="coordos.quality.table.template" name="action_backfill_versions"/>
+</odoo>
