@@ -1,0 +1,62 @@
+<odoo>
+  <record id="view_quality_table_template_tree" model="ir.ui.view">
+    <field name="name">coordos.quality.table.template.tree</field>
+    <field name="model">coordos.quality.table.template</field>
+    <field name="arch" type="xml">
+      <tree string="质检表模板中心">
+        <field name="active"/>
+        <field name="sequence"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="target_table_type"/>
+        <field name="min_score"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_quality_table_template_form" model="ir.ui.view">
+    <field name="name">coordos.quality.table.template.form</field>
+    <field name="model">coordos.quality.table.template</field>
+    <field name="arch" type="xml">
+      <form string="质检表模板中心">
+        <sheet>
+          <group>
+            <field name="active"/>
+            <field name="sequence"/>
+            <field name="name"/>
+            <field name="code"/>
+            <field name="target_table_type"/>
+            <field name="min_score"/>
+            <field name="title_regex"/>
+          </group>
+          <group string="匹配规则">
+            <field name="required_keywords" placeholder="每行一个必含关键词"/>
+            <field name="keyword_rules" placeholder="每行一个命中规则，支持 A|B 和 file: 前缀"/>
+          </group>
+          <group string="字段提取">
+            <field name="field_patterns_json" nolabel="1"/>
+          </group>
+          <group string="默认值">
+            <field name="default_values_json" nolabel="1"/>
+          </group>
+          <group string="备注">
+            <field name="notes" nolabel="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_quality_table_template" model="ir.actions.act_window">
+    <field name="name">质检表模板中心</field>
+    <field name="res_model">coordos.quality.table.template</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem id="menu_quality_table_template"
+            name="质检表模板中心"
+            parent="menu_coordos_config_root"
+            action="action_quality_table_template"
+            sequence="35"
+            groups="coordos_odoo.group_coordos_company_admin"/>
+</odoo>

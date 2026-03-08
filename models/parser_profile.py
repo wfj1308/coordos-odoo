@@ -17,6 +17,7 @@ class CoordosParserProfile(models.Model):
             ("bid", "中标清单"),
             ("drawing", "图纸"),
             ("contract", "合同"),
+            ("quality_table", "通用质检表"),
         ],
         string="解析类型",
         required=True,

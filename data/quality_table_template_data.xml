@@ -1,0 +1,42 @@
+<odoo noupdate="1">
+  <record id="quality_table_template_bridge_pier_finished" model="coordos.quality.table.template">
+    <field name="active">True</field>
+    <field name="sequence">10</field>
+    <field name="name">桥梁墩(台)身成品检查表</field>
+    <field name="code">bridge_pier_finished_check</field>
+    <field name="target_table_type">other</field>
+    <field name="min_score">2</field>
+    <field name="required_keywords">成品检查表</field>
+    <field name="keyword_rules">桥梁墩|墩(台)身
+桩号或部位|检查日期</field>
+    <field name="title_regex">([^\n]{4,60}成品检查表)</field>
+    <field name="field_patterns_json"><![CDATA[
+{
+  "check_date": {"regex": "检查日期[:：]?\\s*([0-9]{4}[-/年][0-9]{1,2}[-/月][0-9]{1,2})", "type": "date"},
+  "contract_no": {"regex": "合同段[:：]?\\s*([^\\n]+)", "type": "string"},
+  "pile_position": {"regex": "桩号或部位[:：]?\\s*([^\\n]+)", "type": "string"}
+}
+    ]]></field>
+  </record>
+
+  <record id="quality_table_template_enlarged_foundation" model="coordos.quality.table.template">
+    <field name="active">True</field>
+    <field name="sequence">20</field>
+    <field name="name">混凝土扩大基础工程成品检查表</field>
+    <field name="code">concrete_enlarged_foundation_check</field>
+    <field name="target_table_type">other</field>
+    <field name="min_score">2</field>
+    <field name="required_keywords">成品检查表</field>
+    <field name="keyword_rules">扩大基础|混凝土
+施工单位|监理单位</field>
+    <field name="title_regex">([^\n]{4,60}成品检查表)</field>
+    <field name="field_patterns_json"><![CDATA[
+{
+  "check_date": {"regex": "检查日期[:：]?\\s*([0-9]{4}[-/年][0-9]{1,2}[-/月][0-9]{1,2})", "type": "date"},
+  "construction_unit": {"regex": "施工单位[:：]?\\s*([^\\n]+)", "type": "string"},
+  "supervision_unit": {"regex": "监理单位[:：]?\\s*([^\\n]+)", "type": "string"},
+  "contract_no": {"regex": "合同段[:：]?\\s*([^\\n]+)", "type": "string"}
+}
+    ]]></field>
+  </record>
+</odoo>

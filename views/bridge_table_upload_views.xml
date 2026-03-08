@@ -10,6 +10,9 @@
             <field name="file_name" string="&#x6587;&#x4EF6;&#x540D;"/>
             <field name="table_type" string="&#x8868;&#x683C;&#x7C7B;&#x578B;"/>
             <field name="resolved_table_type" readonly="1" string="&#x8BC6;&#x522B;&#x7ED3;&#x679C;"/>
+            <field name="matched_template_id" readonly="1" string="&#x547D;&#x4E2D;&#x6A21;&#x677F;"/>
+            <field name="matched_template_code" readonly="1" string="&#x6A21;&#x677F;&#x7F16;&#x7801;"/>
+            <field name="matched_template_name" readonly="1" string="&#x6A21;&#x677F;&#x540D;&#x79F0;"/>
             <field name="pile_id" string="&#x5173;&#x8054;&#x6869;&#x57FA;"/>
             <field name="auto_submit_core" string="&#x751F;&#x6210;&#x540E;&#x81EA;&#x52A8;&#x63D0;&#x4EA4;Core(&#x4EC5;&#x6865;&#x65BD;7)"/>
             <field name="status" readonly="1" string="&#x72B6;&#x6001;"/>

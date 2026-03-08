@@ -22,6 +22,8 @@ class CoordosQualityTableRecord(models.Model):
     name = fields.Char("记录编号", default="新建", copy=False)
     table_title = fields.Char("表单标题")
     table_type_code = fields.Char("表单类型编码", default="other")
+    quality_template_id = fields.Many2one("coordos.quality.table.template", string="命中模板")
+    quality_template_code = fields.Char("模板编码")
     source_file_name = fields.Char("源文件名")
     source_attachment_id = fields.Many2one("ir.attachment", string="源文件", readonly=True, copy=False)
     trip_shadow_id = fields.Many2one("coordos.trip.shadow", string="关联Trip", readonly=True, copy=False)
@@ -58,12 +60,18 @@ class CoordosQualityTableRecord(models.Model):
         for rec in records:
             if rec.name == "新建":
                 rec.name = f"QT-{fields.Date.today().strftime('%Y%m%d')}-{rec.id:04d}"
+            if rec.quality_template_id and not rec.quality_template_code:
+                rec.quality_template_code = rec.quality_template_id.code
             if not rec.editable_data_json and rec.parsed_data_json:
                 rec.editable_data_json = rec.parsed_data_json
             rec._refresh_signature_audit()
         return records
 
     def write(self, vals):
+        if "quality_template_id" in vals and vals.get("quality_template_id") and "quality_template_code" not in vals:
+            template = self.env["coordos.quality.table.template"].browse(vals.get("quality_template_id"))
+            if template.exists():
+                vals["quality_template_code"] = template.code
         res = super().write(vals)
         if {
             "inspector_signature_ref",

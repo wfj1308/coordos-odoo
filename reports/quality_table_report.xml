@@ -31,6 +31,12 @@
                   <td><span t-esc="o.source_file_name or ''"/></td>
                 </tr>
                 <tr>
+                  <td><strong>命中模板</strong></td>
+                  <td><span t-esc="o.quality_template_code or (o.quality_template_id.code if o.quality_template_id else '')"/></td>
+                  <td><strong>模板名称</strong></td>
+                  <td><span t-esc="o.quality_template_id.name if o.quality_template_id else ''"/></td>
+                </tr>
+                <tr>
                   <td><strong>桩位引用</strong></td>
                   <td><span t-esc="o.pile_ref or ''"/></td>
                   <td><strong>USI路径</strong></td>

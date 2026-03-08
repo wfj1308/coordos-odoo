@@ -48,6 +48,9 @@ class BridgeTableUploadWizard(models.TransientModel):
     )
     ocr_result = fields.Text("OCR Text", readonly=True)
     parsed_data_json = fields.Text("Parsed JSON", readonly=True)
+    matched_template_id = fields.Many2one("coordos.quality.table.template", string="Matched Template", readonly=True)
+    matched_template_code = fields.Char("Matched Template Code", readonly=True)
+    matched_template_name = fields.Char("Matched Template Name", readonly=True)
 
     usi_path = fields.Char("USI Path", readonly=True)
     usi_full_path = fields.Char("USI Full Path", readonly=True)
@@ -400,45 +403,91 @@ class BridgeTableUploadWizard(models.TransientModel):
 
         cleaned_parts = [self._clean_text(part) for part in text_parts if self._clean_text(part)]
         text = "\n".join(cleaned_parts).strip()
-        data = self._extract_fields_from_text(text)
+        data = self._extract_fields_from_text(text, file_name)
         return self._clean_text(text), self._sanitize_obj(data)
 
-    def _extract_fields_from_text(self, text):
+    def _extract_fields_from_text(self, text, file_name=None):
         normalized = self._clean_text(text)
         normalized_no_space = self._normalize_for_match(normalized)
         data = {}
 
+        template_payload = self.env["coordos.quality.table.template"].match_and_extract(normalized, file_name or "")
+        if isinstance(template_payload, dict):
+            data.update(self._sanitize_obj(template_payload))
+
+        try:
+            ai_payload = self.env["coordos.parser.profile"].parse_with_active("quality_table", normalized)
+        except Exception:
+            ai_payload = {}
+        if isinstance(ai_payload, dict):
+            for key, value in self._sanitize_obj(ai_payload).items():
+                if key not in data or data.get(key) in (None, "", []):
+                    data[key] = value
+
+        def put_if_empty(key, value):
+            if value in (None, ""):
+                return
+            if key not in data or data.get(key) in (None, "", []):
+                data[key] = value
+
         pile_ref_match = re.search(r"v://[^\s,\]\[\"']+", normalized)
         if pile_ref_match:
-            data["pile_ref"] = pile_ref_match.group(0)
+            put_if_empty("pile_ref", pile_ref_match.group(0))
 
-        data["table_type"] = self._guess_table_type(normalized)
-        data["table_title"] = self._extract_table_title(normalized)
-        data["check_date"] = self._extract_date(normalized)
+        put_if_empty("table_type", self._guess_table_type(normalized))
+        put_if_empty("table_title", self._extract_table_title(normalized))
+        put_if_empty("check_date", self._extract_date(normalized))
 
-        data["design_depth"] = self._extract_first_float(normalized_no_space, [r"(?:\u5e94\u94bb\u6df1\u5ea6|design_depth)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_drilled_depth"] = self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u94bb\u6df1\u5ea6|actual_drilled_depth)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["design_diameter"] = self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u6869\u5f84|design_diameter)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_diameter"] = self._extract_first_float(normalized_no_space, [r"(?:\u6210\u5b54\u76f4\u5f84|actual_diameter)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["inclination_permille"] = self._extract_first_float(normalized_no_space, [r"(?:\u503e\u659c\u5ea6|inclination_permille)[:：]?\s*(-?\d+(?:\.\d+)?)"])
+        put_if_empty(
+            "design_depth",
+            self._extract_first_float(normalized_no_space, [r"(?:\u5e94\u94bb\u6df1\u5ea6|design_depth)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "actual_drilled_depth",
+            self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u94bb\u6df1\u5ea6|actual_drilled_depth)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "design_diameter",
+            self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u6869\u5f84|design_diameter)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "actual_diameter",
+            self._extract_first_float(normalized_no_space, [r"(?:\u6210\u5b54\u76f4\u5f84|actual_diameter)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "inclination_permille",
+            self._extract_first_float(normalized_no_space, [r"(?:\u503e\u659c\u5ea6|inclination_permille)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
 
         if re.search(r"(\u68c0\u5b54\u5668\u901a\u8fc7|hole_detector_passed[:：=]?true)", normalized_no_space, flags=re.IGNORECASE):
-            data["hole_detector_passed"] = True
+            put_if_empty("hole_detector_passed", True)
         elif re.search(r"(\u68c0\u5b54\u5668\u672a\u901a\u8fc7|hole_detector_passed[:：=]?false)", normalized_no_space, flags=re.IGNORECASE):
-            data["hole_detector_passed"] = False
+            put_if_empty("hole_detector_passed", False)
 
-        data["design_top_elevation"] = self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u6869\u9876\u9ad8\u7a0b|design_top_elevation)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_top_elevation"] = self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u6d4b\u6869\u9876\u9ad8\u7a0b|actual_top_elevation)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["design_x"] = self._extract_first_float(normalized_no_space, [r"(?:design_x)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_x"] = self._extract_first_float(normalized_no_space, [r"(?:actual_x)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["design_y"] = self._extract_first_float(normalized_no_space, [r"(?:design_y)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_y"] = self._extract_first_float(normalized_no_space, [r"(?:actual_y)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["design_strength"] = self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u5f3a\u5ea6|design_strength)[:：]?\s*(-?\d+(?:\.\d+)?)"])
-        data["actual_strength"] = self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u6d4b\u5f3a\u5ea6|actual_strength)[:：]?\s*(-?\d+(?:\.\d+)?)"])
+        put_if_empty(
+            "design_top_elevation",
+            self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u6869\u9876\u9ad8\u7a0b|design_top_elevation)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "actual_top_elevation",
+            self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u6d4b\u6869\u9876\u9ad8\u7a0b|actual_top_elevation)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty("design_x", self._extract_first_float(normalized_no_space, [r"(?:design_x)[:：]?\s*(-?\d+(?:\.\d+)?)"]))
+        put_if_empty("actual_x", self._extract_first_float(normalized_no_space, [r"(?:actual_x)[:：]?\s*(-?\d+(?:\.\d+)?)"]))
+        put_if_empty("design_y", self._extract_first_float(normalized_no_space, [r"(?:design_y)[:：]?\s*(-?\d+(?:\.\d+)?)"]))
+        put_if_empty("actual_y", self._extract_first_float(normalized_no_space, [r"(?:actual_y)[:：]?\s*(-?\d+(?:\.\d+)?)"]))
+        put_if_empty(
+            "design_strength",
+            self._extract_first_float(normalized_no_space, [r"(?:\u8bbe\u8ba1\u5f3a\u5ea6|design_strength)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
+        put_if_empty(
+            "actual_strength",
+            self._extract_first_float(normalized_no_space, [r"(?:\u5b9e\u6d4b\u5f3a\u5ea6|actual_strength)[:：]?\s*(-?\d+(?:\.\d+)?)"]),
+        )
 
         integrity_match = re.search(r"(?:\u5b8c\u6574\u6027\u7b49\u7ea7|integrity_class)\s*[:：]?\s*([A-Za-z0-9\u4e00-\u9fa5IVX]+)", normalized)
         if integrity_match:
-            data["integrity_class"] = integrity_match.group(1).strip()
+            put_if_empty("integrity_class", integrity_match.group(1).strip())
 
         refs = re.findall(r"(?:photo|doc|report|v|attachment)://[^\s,\]\[\"']+", normalized, flags=re.IGNORECASE)
         if refs:
@@ -446,19 +495,27 @@ class BridgeTableUploadWizard(models.TransientModel):
 
         sigs = re.findall(r"sig:[A-Za-z0-9_-]+", normalized)
         if sigs:
-            data["inspector_signature_ref"] = sigs[0]
+            put_if_empty("inspector_signature_ref", sigs[0])
             if len(sigs) > 1:
-                data["recorder_signature_ref"] = sigs[1]
+                put_if_empty("recorder_signature_ref", sigs[1])
             if len(sigs) > 2:
-                data["reviewer_signature_ref"] = sigs[2]
+                put_if_empty("reviewer_signature_ref", sigs[2])
             if len(sigs) > 3:
-                data["construction_signature_ref"] = sigs[3]
+                put_if_empty("construction_signature_ref", sigs[3])
             if len(sigs) > 4:
-                data["supervisor_signature_ref"] = sigs[4]
+                put_if_empty("supervisor_signature_ref", sigs[4])
 
         generic_fields = self._extract_generic_kv_pairs(normalized)
         if generic_fields:
-            data["generic_fields"] = generic_fields
+            existed = data.get("generic_fields")
+            if isinstance(existed, dict):
+                merged = dict(existed)
+                for k, v in generic_fields.items():
+                    if k not in merged or merged.get(k) in (None, ""):
+                        merged[k] = v
+                data["generic_fields"] = merged
+            else:
+                data["generic_fields"] = generic_fields
 
         return self._sanitize_obj(data)
 
@@ -510,6 +567,9 @@ class BridgeTableUploadWizard(models.TransientModel):
         self.resolved_table_type = resolved
         self.ocr_result = self._clean_text(text)[:50000]
         self.parsed_data_json = self._clean_text(json.dumps(self._sanitize_obj(data), ensure_ascii=False, indent=2))
+        self.matched_template_id = data.get("template_id") or False
+        self.matched_template_code = data.get("template_code") or ""
+        self.matched_template_name = data.get("template_name") or ""
 
         if data.get("pile_ref"):
             self.pile_ref = data["pile_ref"]
@@ -564,6 +624,9 @@ class BridgeTableUploadWizard(models.TransientModel):
             "bridge_name": self.bridge_name,
             "pier_name": self.pier_name,
             "pile_position": self.pile_position,
+            "template_id": self.matched_template_id.id if self.matched_template_id else False,
+            "template_code": self.matched_template_code or "",
+            "template_name": self.matched_template_name or "",
             "signatures": {
                 "inspector": self.inspector_signature_ref or "",
                 "recorder": self.recorder_signature_ref or "",
@@ -672,10 +735,14 @@ class BridgeTableUploadWizard(models.TransientModel):
                 editable_payload[key] = value
 
         table_title = parsed_payload.get("table_title") or self.file_name or self.photo_name or "通用质检表"
+        template_id = parsed_payload.get("template_id") or (self.matched_template_id.id if self.matched_template_id else False)
+        template_code = parsed_payload.get("template_code") or self.matched_template_code or ""
         return self.env["coordos.quality.table.record"].create(
             {
                 "table_title": self._clean_text(table_title),
                 "table_type_code": self.resolved_table_type or self.table_type or "other",
+                "quality_template_id": template_id or False,
+                "quality_template_code": template_code,
                 "source_file_name": self.file_name or self.photo_name or "",
                 "trip_shadow_id": trip_shadow.id if trip_shadow else False,
                 "pile_id": self.pile_id.id if self.pile_id else False,
