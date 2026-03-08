@@ -68,7 +68,7 @@ class CoordosProject(models.Model):
 
     def action_open_ai_qa(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_coordos_qa_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_coordos_qa_wizard").read()[0]
         action["context"] = {
             "default_project_id": self.id,
             "default_question": f"{self.name} 项目当前状态与风险如何？",

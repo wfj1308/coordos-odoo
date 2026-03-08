@@ -3,8 +3,8 @@
     <field name="name">桥施7表-桩基成孔检查</field>
     <field name="model">bridge.pile.hole.inspection</field>
     <field name="report_type">qweb-pdf</field>
-    <field name="report_name">coordos_shell.report_bridge_table7</field>
-    <field name="report_file">coordos_shell.report_bridge_table7</field>
+    <field name="report_name">coordos_odoo.report_bridge_table7</field>
+    <field name="report_file">coordos_odoo.report_bridge_table7</field>
     <field name="print_report_name">'桥施7_%s' % (object.pile_id.name or object.name)</field>
   </record>
 
@@ -12,8 +12,8 @@
     <field name="name">桥施13表-桩基成桩检查</field>
     <field name="model">bridge.pile.final.inspection</field>
     <field name="report_type">qweb-pdf</field>
-    <field name="report_name">coordos_shell.report_bridge_table13</field>
-    <field name="report_file">coordos_shell.report_bridge_table13</field>
+    <field name="report_name">coordos_odoo.report_bridge_table13</field>
+    <field name="report_file">coordos_odoo.report_bridge_table13</field>
     <field name="print_report_name">'桥施13_%s' % (object.pile_id.name or object.name)</field>
   </record>
 

@@ -12,7 +12,7 @@ services:
       - PASSWORD=odoo
       - COORDOS_CORE_URL=http://coordos-core:8080
     volumes:
-      - ./:/mnt/extra-addons/coordos_shell
+      - ./:/mnt/extra-addons/coordos_odoo
       - ./data:/var/lib/odoo
     depends_on:
       - db

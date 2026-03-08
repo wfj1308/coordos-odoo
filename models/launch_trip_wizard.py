@@ -15,6 +15,7 @@ TRIP_TEMPLATE_OPTIONS = [
     ("pile_construction", "桩基施工（pile_construction）"),
     ("earthwork_excavation", "土方开挖（earthwork_excavation）"),
     ("rebar_binding", "钢筋绑扎（rebar_binding）"),
+    ("bridge_table_upload", "桥表上传（bridge_table_upload）"),
 ]
 
 TRIP_TEMPLATE_ITEM_CODE = {
@@ -45,6 +46,12 @@ TRIP_TEMPLATE_SCHEMA = {
             {"key": "spec", "label": "规格", "type": "string", "default": "Φ25"},
         ]
     },
+    "bridge_table_upload": {
+        "fields": [
+            {"key": "table_no", "label": "报表编号", "type": "string", "default": "table7"},
+            {"key": "source", "label": "来源", "type": "string", "default": "odoo_upload"},
+        ]
+    },
 }
 
 
@@ -71,8 +78,23 @@ class LaunchTripWizard(models.TransientModel):
     def _selection_trip_template(self):
         configs = self.env["coordos.trip.template.config"].search([("active", "=", True)], order="id")
         if configs:
-            return [(rec.code, rec.display_name) for rec in configs]
-        return TRIP_TEMPLATE_OPTIONS
+            options = [(rec.code, rec.display_name) for rec in configs]
+        else:
+            options = list(TRIP_TEMPLATE_OPTIONS)
+
+        existing_codes = {code for code, _ in options}
+        ctx = self.env.context or {}
+        candidates = [ctx.get("default_trip_template")]
+        if ctx.get("active_model") == "coordos.trip.shadow" and ctx.get("active_id"):
+            trip = self.env["coordos.trip.shadow"].browse(ctx.get("active_id"))
+            if trip.exists():
+                candidates.append(trip.trip_template)
+
+        for code in candidates:
+            if code and code not in existing_codes:
+                options.append((code, f"{code}（{code}）"))
+                existing_codes.add(code)
+        return options
 
     def _template_config(self, code=None):
         template_code = code or self.trip_template
@@ -99,7 +121,7 @@ class LaunchTripWizard(models.TransientModel):
         remote_fields = self._load_template_descriptor()
         self._regenerate_input_lines(sync_json=True, remote_fields=remote_fields)
 
-    @api.onchange("input_line_ids", "input_line_ids.value_text")
+    @api.onchange("input_line_ids")
     def _onchange_input_line_ids(self):
         if not self.input_line_ids:
             return
@@ -193,7 +215,7 @@ class LaunchTripWizard(models.TransientModel):
             "res_model": "coordos.trip.shadow",
             "res_id": trip.id,
             "view_mode": "form",
-            "view_id": self.env.ref("coordos_shell.view_trip_detail_min_form").id,
+            "view_id": self.env.ref("coordos_odoo.view_trip_detail_min_form").id,
             "target": "current",
         }
 
@@ -532,3 +554,46 @@ class LaunchTripInputLine(models.TransientModel):
         readonly=True,
     )
     value_text = fields.Text("值")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        patched = []
+        for vals in vals_list:
+            item = dict(vals)
+            key = (item.get("key") or "").strip()
+            label = (item.get("label") or "").strip()
+            if not key:
+                wizard = self.env["launch.trip.wizard"].browse(item.get("wizard_id")) if item.get("wizard_id") else False
+                seq = int(item.get("sequence") or 0)
+
+                # 1) Prefer existing lines in the same wizard (same sequence).
+                if wizard and seq > 0:
+                    existing = wizard.input_line_ids.filtered(lambda l: l.sequence == seq)[:1]
+                    if existing and existing.key:
+                        key = existing.key
+                        label = label or existing.label or key
+                        item.setdefault("value_type", existing.value_type or "string")
+
+                # 2) Fallback: derive key from input_json field order.
+                if (not key) and wizard and wizard.input_json and seq > 0:
+                    try:
+                        payload = json.loads(wizard.input_json)
+                    except ValueError:
+                        payload = {}
+                    if isinstance(payload, dict):
+                        keys = list(payload.keys())
+                        if 1 <= seq <= len(keys):
+                            key = str(keys[seq - 1])
+                            label = label or key
+
+                # 3) Last fallback: deterministic placeholder.
+                if not key:
+                    key = f"field_{seq or 1}"
+                    label = label or key
+
+            item["key"] = key
+            item["label"] = label or key
+            item.setdefault("value_type", "string")
+            patched.append(item)
+
+        return super().create(patched)

@@ -31,7 +31,7 @@ class CertifyTripWizard(models.TransientModel):
             "res_model": "coordos.trip.shadow",
             "res_id": trip.id,
             "view_mode": "form",
-            "view_id": self.env.ref("coordos_shell.view_trip_detail_min_form").id,
+            "view_id": self.env.ref("coordos_odoo.view_trip_detail_min_form").id,
             "target": "current",
         }
 

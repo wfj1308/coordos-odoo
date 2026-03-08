@@ -461,7 +461,7 @@ class CoordosTripShadow(models.Model):
 
     def action_open_launch_wizard(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_trip_launch_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_trip_launch_wizard").read()[0]
         action["context"] = {
             "default_trip_shadow_id": self.id,
             "default_project_node": self.project_node,
@@ -472,7 +472,7 @@ class CoordosTripShadow(models.Model):
 
     def action_open_execute_step_wizard(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_execute_trip_step_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_execute_trip_step_wizard").read()[0]
         action["context"] = {
             "default_trip_shadow_id": self.id,
         }
@@ -480,7 +480,7 @@ class CoordosTripShadow(models.Model):
 
     def action_open_upload_evidence_wizard(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_upload_trip_evidence_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_upload_trip_evidence_wizard").read()[0]
         action["context"] = {
             "default_trip_shadow_id": self.id,
         }
@@ -488,7 +488,7 @@ class CoordosTripShadow(models.Model):
 
     def action_open_certify_wizard(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_certify_trip_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_certify_trip_wizard").read()[0]
         action["context"] = {
             "default_trip_shadow_id": self.id,
             "default_evidence_ids_text": self.x_evidence_ids or "[]",
@@ -661,7 +661,24 @@ class CoordosTripShadow(models.Model):
         return {k: v for k, v in vals.items() if v not in (None, "")}
 
     @api.model
+    def _trip_sync_strict(self):
+        value = self.env["ir.config_parameter"].sudo().get_param("coordos.trip_sync_strict")
+        if value is None:
+            value = os.getenv("COORDOS_TRIP_SYNC_STRICT", "0")
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    @api.model
+    def _skip_trip_sync_for_core(self):
+        if self._trip_sync_strict():
+            return False
+        core_base = (self.env["coordos.api.mixin"]._configured_core_base() or "").lower()
+        return "api.codepeg.com" in core_base
+
+    @api.model
     def sync_from_core(self):
+        if self._skip_trip_sync_for_core():
+            _logger.info("Core 当前环境未启用 trip 列表接口，跳过行程同步。")
+            return 0
         api_mixin = self.env["coordos.api.mixin"]
         try:
             response = api_mixin.get_trip_list()

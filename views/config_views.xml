@@ -197,33 +197,33 @@
       name="配置"
       parent="menu_coordos_root"
       sequence="90"
-      groups="coordos_shell.group_coordos_company_admin"/>
+      groups="coordos_odoo.group_coordos_company_admin"/>
   <menuitem
       id="menu_coordos_trip_template_config"
       name="模板配置"
       parent="menu_coordos_config_root"
       action="action_coordos_trip_template_config"
       sequence="10"
-      groups="coordos_shell.group_coordos_company_admin"/>
+      groups="coordos_odoo.group_coordos_company_admin"/>
   <menuitem
       id="menu_coordos_namespace_policy"
       name="命名空间策略"
       parent="menu_coordos_config_root"
       action="action_coordos_namespace_policy"
       sequence="20"
-      groups="coordos_shell.group_coordos_company_admin"/>
+      groups="coordos_odoo.group_coordos_company_admin"/>
   <menuitem
       id="menu_coordos_parser_profile"
       name="解析器配置"
       parent="menu_coordos_config_root"
       action="action_coordos_parser_profile"
       sequence="30"
-      groups="coordos_shell.group_coordos_company_admin"/>
+      groups="coordos_odoo.group_coordos_company_admin"/>
   <menuitem
       id="menu_coordos_trip_registration"
       name="注册审批"
       parent="menu_coordos_root"
       action="action_coordos_trip_registration"
       sequence="35"
-      groups="coordos_shell.group_coordos_project_manager,coordos_shell.group_coordos_company_admin"/>
+      groups="coordos_odoo.group_coordos_project_manager,coordos_odoo.group_coordos_company_admin"/>
 </odoo>

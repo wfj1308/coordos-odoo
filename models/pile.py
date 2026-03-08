@@ -362,7 +362,7 @@ class BridgePile(models.Model):
                 [("pile_id", "=", self.id), ("core_trip_id", "=", self.table7_trip_id)], order="id desc", limit=1
             )
         if record:
-            return self.env.ref("coordos_shell.action_report_bridge_table7").report_action(record)
+            return self.env.ref("coordos_odoo.action_report_bridge_table7").report_action(record)
         if self.table7_pdf_ref:
             return {"type": "ir.actions.act_url", "url": self._absolute_pdf_url(self.table7_pdf_ref), "target": "new"}
         raise UserError("桥施7 PDF 引用为空。")
@@ -375,7 +375,7 @@ class BridgePile(models.Model):
         if not record:
             record = self.env["bridge.pile.final.inspection"].search([("pile_id", "=", self.id)], order="id desc", limit=1)
         if record:
-            return self.env.ref("coordos_shell.action_report_bridge_table13").report_action(record)
+            return self.env.ref("coordos_odoo.action_report_bridge_table13").report_action(record)
         if self.table13_pdf_ref:
             return {"type": "ir.actions.act_url", "url": self._absolute_pdf_url(self.table13_pdf_ref), "target": "new"}
         raise UserError("桥施13 PDF 引用为空。")
@@ -556,7 +556,7 @@ class BridgePileHoleInspection(models.Model):
     def action_print_bridge_table7(self):
         self.ensure_one()
         self._ensure_usi_autofill()
-        return self.env.ref("coordos_shell.action_report_bridge_table7").report_action(self)
+        return self.env.ref("coordos_odoo.action_report_bridge_table7").report_action(self)
 
     def action_open_core_pdf(self):
         self.ensure_one()

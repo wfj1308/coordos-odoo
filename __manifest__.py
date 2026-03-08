@@ -3,6 +3,7 @@
     'version': '1.0',
     'summary': 'CoordOS Odoo bridge/SPU/trip module',
     'author': 'CoordOS',
+    'license': 'LGPL-3',
     'depends': ['base', 'web'],
     'data': [
         'security/coordos_groups.xml',

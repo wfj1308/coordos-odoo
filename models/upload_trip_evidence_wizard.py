@@ -30,12 +30,12 @@ class UploadTripEvidenceWizard(models.TransientModel):
             "res_model": "coordos.trip.shadow",
             "res_id": trip.id,
             "view_mode": "form",
-            "view_id": self.env.ref("coordos_shell.view_trip_detail_min_form").id,
+            "view_id": self.env.ref("coordos_odoo.view_trip_detail_min_form").id,
             "target": "current",
         }
 
     def _open_certify_wizard_action(self, trip):
-        action = self.env.ref("coordos_shell.action_certify_trip_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_certify_trip_wizard").read()[0]
         action["context"] = {
             "default_trip_shadow_id": trip.id,
             "default_evidence_ids_text": trip.x_evidence_ids or "[]",

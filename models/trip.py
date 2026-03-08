@@ -35,7 +35,7 @@ class CoordosTrip(models.Model):
 
     def action_open_launch_wizard(self):
         self.ensure_one()
-        action = self.env.ref("coordos_shell.action_trip_launch_wizard").read()[0]
+        action = self.env.ref("coordos_odoo.action_trip_launch_wizard").read()[0]
         action["context"] = {
             "default_trip_id": self.id,
             "default_project_node": self.project_node,
